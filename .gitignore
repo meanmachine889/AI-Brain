@@ -1,0 +1,35 @@
+# ---- secrets (NEVER commit) ----
+.env
+.env.*
+!.env.example
+*.env
+
+# ---- Python (apps/api) ----
+__pycache__/
+*.py[oc]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Node / Next.js (apps/web) ----
+node_modules/
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# ---- private planning / strategy docs (not for public repo) ----
+agency-ai-brain.md
+agency-ai-brain-tech.md
+agency-ai-brain-buildplan.md
+agency-ai-brain-buildplan-1.md
+
+# ---- OS / editor ----
+.DS_Store
+*.log
+.idea/
+.vscode/

@@ -1,0 +1,128 @@
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.session import get_db
+from db.models import Client, Agency
+from core.security import get_current_agency
+
+router = APIRouter()
+
+
+# ---- request / response shapes ----
+class ClientCreate(BaseModel):
+    name: str
+    domain: str | None = None
+    slack_channel_ids: list[str] = []
+    jira_project_keys: list[str] = []
+    drive_folder_ids: list[str] = []
+
+
+class ClientUpdate(BaseModel):
+    name: str | None = None
+    domain: str | None = None
+    slack_channel_ids: list[str] | None = None
+    jira_project_keys: list[str] | None = None
+    drive_folder_ids: list[str] | None = None
+    metadata: dict | None = None
+
+
+class ClientOut(BaseModel):
+    id: str
+    name: str
+    domain: str | None
+    slack_channel_ids: list[str]
+    jira_project_keys: list[str]
+    drive_folder_ids: list[str]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ---- helper: fetch a client that BELONGS to this agency, else 404 ----
+async def _get_owned_client(client_id: str, agency: Agency, db: AsyncSession) -> Client:
+    client = (
+        await db.execute(
+            select(Client).where(
+                Client.id == client_id,
+                Client.agency_id == agency.id,   # <-- the scoping guard
+            )
+        )
+    ).scalar_one_or_none()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    return client
+
+
+# ---- routes (mounted under /clients in main.py) ----
+@router.get("", response_model=list[ClientOut])
+async def list_clients(
+    agency: Agency = Depends(get_current_agency),
+    db: AsyncSession = Depends(get_db),
+):
+    clients = (
+        await db.execute(select(Client).where(Client.agency_id == agency.id))
+    ).scalars().all()
+    return clients
+
+
+@router.post("", response_model=ClientOut, status_code=201)
+async def create_client(
+    body: ClientCreate,
+    agency: Agency = Depends(get_current_agency),
+    db: AsyncSession = Depends(get_db),
+):
+    client = Client(
+        agency_id=agency.id,
+        name=body.name,
+        domain=body.domain,
+        slack_channel_ids=body.slack_channel_ids,
+        jira_project_keys=body.jira_project_keys,
+        drive_folder_ids=body.drive_folder_ids,
+    )
+    db.add(client)
+    await db.commit()
+    await db.refresh(client)
+    return client
+
+
+@router.get("/{client_id}", response_model=ClientOut)
+async def get_client(
+    client_id: str,
+    agency: Agency = Depends(get_current_agency),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _get_owned_client(client_id, agency, db)
+
+
+@router.patch("/{client_id}", response_model=ClientOut)
+async def update_client(
+    client_id: str,
+    body: ClientUpdate,
+    agency: Agency = Depends(get_current_agency),
+    db: AsyncSession = Depends(get_db),
+):
+    client = await _get_owned_client(client_id, agency, db)
+    updates = body.model_dump(exclude_unset=True)
+    if "metadata" in updates:                       # API field -> ORM attr metadata_
+        client.metadata_ = updates.pop("metadata")
+    for field, value in updates.items():
+        setattr(client, field, value)
+    await db.commit()
+    await db.refresh(client)
+    return client
+
+
+@router.delete("/{client_id}")
+async def delete_client(
+    client_id: str,
+    agency: Agency = Depends(get_current_agency),
+    db: AsyncSession = Depends(get_db),
+):
+    client = await _get_owned_client(client_id, agency, db)
+    await db.delete(client)
+    await db.commit()
+    return {"deleted": True}
