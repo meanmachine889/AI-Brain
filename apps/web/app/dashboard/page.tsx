@@ -1,215 +1,98 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  api,
-  getToken,
-  type Dashboard,
-  type Alert,
-} from "@/lib/api";
-import { relativeTime, scoreColor, severityVariant } from "@/lib/format";
-import { Nav } from "@/components/nav";
+import { api, getToken, type Client } from "@/lib/api";
+import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
+// /dashboard resolves to the oldest client. It only renders UI for onboarding
+// (no clients yet) or when ?add=1 is passed to create another client.
 export default function DashboardPage() {
   const router = useRouter();
-  const [data, setData] = useState<Dashboard | null>(null);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  const load = useCallback(async () => {
+  const resolve = useCallback(async () => {
+    const forceAdd =
+      new URLSearchParams(window.location.search).get("add") === "1";
     try {
-      const [d, a] = await Promise.all([
-        api<Dashboard>("/dashboard"),
-        api<Alert[]>("/dashboard/alerts"),
-      ]);
-      setData(d);
-      setAlerts(a);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
+      const clients = await api<Client[]>("/clients");
+      if (clients.length > 0 && !forceAdd) {
+        const oldest = [...clients].sort(
+          (a, b) => +new Date(a.created_at) - +new Date(b.created_at)
+        )[0];
+        router.replace(`/clients/${oldest.id}`);
+        return;
+      }
+      setReady(true); // show the add-client screen
+    } catch {
+      router.replace("/login");
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!getToken()) {
       router.replace("/login");
       return;
     }
-    load();
-  }, [router, load]);
-
-  async function resolveAlert(id: string) {
-    try {
-      await api(`/alerts/${id}/resolve`, { method: "PATCH" });
-      setAlerts((prev) => prev.filter((a) => a.id !== id));
-      toast.success("Alert resolved");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
-    }
-  }
+    resolve();
+  }, [router, resolve]);
 
   return (
-    <>
-      <Nav />
-      <main className="mx-auto max-w-5xl w-full px-4 py-8 space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              {data ? `${data.clients.length} clients` : "Loading..."}
-              {data && data.total_alerts > 0
-                ? ` · ${data.total_alerts} open alerts`
-                : ""}
-            </p>
+    <AppShell title="New client">
+      <div className="mx-auto flex max-w-xl flex-col px-4 py-16">
+        {!ready ? (
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-24 w-full" />
           </div>
-          <Button onClick={() => setShowAdd((s) => !s)}>
-            {showAdd ? "Cancel" : "Add client"}
-          </Button>
-        </div>
-
-        {showAdd && (
-          <AddClientForm
-            onCreated={() => {
-              setShowAdd(false);
-              load();
-            }}
-          />
+        ) : (
+          <>
+            <h1 className="text-2xl font-semibold">Add a client</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create a client, then map its data sources — Slack channels, a Jira
+              project, or an email domain. The brain builds from there.
+            </p>
+            <div className="mt-6">
+              <AddClientForm
+                onCreated={(id) => router.replace(`/clients/${id}`)}
+              />
+            </div>
+          </>
         )}
-
-        {/* Attention feed */}
-        {alerts.length > 0 && (
-          <section className="space-y-2">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Needs attention
-            </h2>
-            <div className="space-y-2">
-              {alerts.map((a) => (
-                <Card key={a.id} className="py-0">
-                  <CardContent className="flex items-center justify-between gap-4 py-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Badge variant={severityVariant(a.severity)}>
-                        {a.severity}
-                      </Badge>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {a.client_name}
-                        </p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {a.message}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => resolveAlert(a.id)}
-                    >
-                      Resolve
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Client cards */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Clients</h2>
-          {loading ? (
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Skeleton className="h-36" />
-              <Skeleton className="h-36" />
-            </div>
-          ) : !data || data.clients.length === 0 ? (
-            <Card>
-              <CardContent className="py-10 text-center text-muted-foreground text-sm">
-                No clients yet. Click <b>Add client</b> to create one, then
-                connect Slack from Integrations.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
-              {data.clients.map((c) => (
-                <Link key={c.id} href={`/clients/${c.id}`}>
-                  <Card className="h-full transition-colors hover:border-foreground/30">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base">{c.name}</CardTitle>
-                        <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded-full border ${scoreColor(
-                            c.attention_score
-                          )}`}
-                        >
-                          {c.attention_score}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {c.summary ?? "No summary yet — connect Slack & sync."}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>{relativeTime(c.last_activity_at)}</span>
-                        {c.alert_count > 0 && (
-                          <Badge variant="destructive">
-                            {c.alert_count} alert
-                            {c.alert_count > 1 ? "s" : ""}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }
 
-function AddClientForm({ onCreated }: { onCreated: () => void }) {
+function AddClientForm({ onCreated }: { onCreated: (id: string) => void }) {
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
   const [channels, setChannels] = useState("");
   const [jiraKeys, setJiraKeys] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const splitList = (s: string) =>
+  const split = (s: string) =>
     s.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
-      await api("/clients", {
+      const c = await api<Client>("/clients", {
         method: "POST",
         body: JSON.stringify({
           name,
           domain: domain || null,
-          slack_channel_ids: splitList(channels),
-          jira_project_keys: splitList(jiraKeys),
+          slack_channel_ids: split(channels),
+          jira_project_keys: split(jiraKeys),
         }),
       });
       toast.success("Client created");
-      onCreated();
+      onCreated(c.id);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
@@ -217,56 +100,27 @@ function AddClientForm({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  const fields: [string, string, (v: string) => void, string][] = [
+    ["Client name", name, setName, "Acme Corp"],
+    ["Email domain (optional)", domain, setDomain, "acme.com"],
+    ["Slack channel IDs (optional)", channels, setChannels, "C012..."],
+    ["Jira project keys (optional)", jiraKeys, setJiraKeys, "KAN"],
+  ];
+
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <form onSubmit={submit} className="grid sm:grid-cols-4 gap-3 items-end">
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground">Client name</label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Acme Corp"
-              required
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground">
-              Domain (optional)
-            </label>
-            <Input
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              placeholder="acme.com"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground">
-              Slack channel IDs
-            </label>
-            <Input
-              value={channels}
-              onChange={(e) => setChannels(e.target.value)}
-              placeholder="C012..., C034..."
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground">
-              Jira project keys
-            </label>
-            <Input
-              value={jiraKeys}
-              onChange={(e) => setJiraKeys(e.target.value)}
-              placeholder="KAN, PROJ"
-            />
-          </div>
-          <div className="sm:col-span-4">
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Create client"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+    <form
+      onSubmit={submit}
+      className="grid gap-4 rounded-xl border bg-muted/30 p-5 shadow-soft"
+    >
+      {fields.map(([label, value, set, ph]) => (
+        <div key={label} className="space-y-1.5">
+          <label className="text-xs text-muted-foreground">{label}</label>
+          <Input value={value} onChange={(e) => set(e.target.value)} placeholder={ph} />
+        </div>
+      ))}
+      <Button type="submit" disabled={saving || !name.trim()}>
+        {saving ? "Creating..." : "Create client"}
+      </Button>
+    </form>
   );
 }

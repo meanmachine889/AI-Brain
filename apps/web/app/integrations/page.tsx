@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api, getToken, type Integration } from "@/lib/api";
-import { Nav } from "@/components/nav";
+import { AppShell } from "@/components/app-shell";
+import { PROVIDER_ICON, type Provider } from "@/components/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -79,8 +80,7 @@ export default function IntegrationsPage() {
   }
 
   return (
-    <>
-      <Nav />
+    <AppShell title="Integrations">
       <main className="mx-auto max-w-3xl w-full px-4 py-8 space-y-6">
         <div>
           <h1 className="text-2xl font-semibold">Integrations</h1>
@@ -93,11 +93,15 @@ export default function IntegrationsPage() {
         <div className="grid sm:grid-cols-2 gap-4">
           {PROVIDERS.map((p) => {
             const conn = connected(p.id);
+            const Icon = PROVIDER_ICON[p.id as Provider];
             return (
               <Card key={p.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{p.name}</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      {Icon && <Icon className="size-5" />}
+                      {p.name}
+                    </CardTitle>
                     {conn ? (
                       <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
                         Connected
@@ -140,6 +144,6 @@ export default function IntegrationsPage() {
           })}
         </div>
       </main>
-    </>
+    </AppShell>
   );
 }

@@ -7,6 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-link: #007aff;
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
@@ -48,39 +49,45 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Palette: DESIGN-4 "frosted glass workstation" (ChatGPT-style).
+   Carbon text on Snow, Fog panels, Pewter secondary, Link Blue the only accent. */
+/* Warm "frosted workstation" palette (Dia-style): cream canvas, white floating
+   cards, warm near-black text, soft layered shadows. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --background: #ffffff;            /* card / surface */
+  --foreground: #1d1c1a;            /* near-neutral carbon */
+  --card: #ffffff;
+  --card-foreground: #1d1c1a;
+  --popover: #ffffff;
+  --popover-foreground: #1d1c1a;
+  --primary: #1d1c1a;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f3f1;
+  --secondary-foreground: #1d1c1a;
+  --muted: #f6f5f3;               /* barely-warm fog */
+  --muted-foreground: #6a6862;     /* neutral pewter */
+  --accent: #efeeea;              /* subtle hover */
+  --accent-foreground: #1d1c1a;
+  --destructive: #d2483f;
+  --border: rgba(40, 36, 28, 0.08);
+  --input: rgba(40, 36, 28, 0.11);
+  --ring: #007aff;
+  --chart-1: #1d1c1a;
+  --chart-2: #6a6862;
+  --chart-3: #97938b;
+  --chart-4: #c0bcb3;
+  --chart-5: #e1ddd5;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #f6f5f2;             /* subtle warm-neutral sidebar */
+  --sidebar-foreground: #1d1c1a;
+  --sidebar-primary: #1d1c1a;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #ecebe6;
+  --sidebar-accent-foreground: #1d1c1a;
+  --sidebar-border: rgba(40, 36, 28, 0.07);
+  --sidebar-ring: #007aff;
 }
 
 .dark {
@@ -101,7 +108,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: #007aff;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -123,8 +130,47 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "liga" 0;
+    -webkit-font-smoothing: antialiased;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Soft, warm, layered depth (Dia-style). Raised surfaces float off the cream. */
+@layer utilities {
+  .shadow-soft {
+    box-shadow:
+      0 1px 1px rgba(60, 45, 20, 0.04),
+      0 2px 6px -1px rgba(60, 45, 20, 0.07);
+  }
+  .shadow-raised {
+    box-shadow:
+      0 1px 2px rgba(60, 45, 20, 0.05),
+      0 4px 10px -2px rgba(60, 45, 20, 0.08);
+  }
+  .shadow-float {
+    box-shadow:
+      0 1px 2px rgba(60, 45, 20, 0.05),
+      0 18px 48px -12px rgba(80, 55, 20, 0.22);
+  }
+  .ring-hairline {
+    box-shadow: inset 0 0 0 1px rgba(60, 45, 20, 0.07);
+  }
+
+  /* Subtle warm-neutral canvas for the main work area. Just a hint of warmth,
+     not amber — keeps the framed window calm. */
+  .canvas-warm {
+    background:
+      radial-gradient(120% 80% at 50% 12%, #ffffff 0%, #fbfaf8 55%, #f6f4f0 100%);
+  }
+  /* Very faint glow behind the ask card (neutral, barely-there). */
+  .glow-warm {
+    background: radial-gradient(
+      60% 60% at 50% 50%,
+      rgba(120, 110, 90, 0.10) 0%,
+      rgba(120, 110, 90, 0) 70%
+    );
   }
 }
