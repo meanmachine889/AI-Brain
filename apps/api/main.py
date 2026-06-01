@@ -1,13 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from core.config import settings
 from routers import auth, clients, integrations, summaries
 
 app = FastAPI(title="Agency AI Brain", version="0.1.0")
 
+# Any client app (web, future mobile/admin) reuses this API. Add its origin to
+# CORS_ORIGINS in .env (comma-separated) — no code change needed.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # the Next.js frontend (later)
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

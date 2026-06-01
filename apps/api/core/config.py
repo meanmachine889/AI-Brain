@@ -21,8 +21,14 @@ class Settings(BaseSettings):
     claude_model: str = "claude-sonnet-4-6"  # unused (kept for reference)
     chat_model: str = "gemini-2.5-flash"
     google_api_key: str = ""
+    # comma-separated list of allowed frontend origins (web, future mobile/admin, etc.)
+    cors_origins: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
 settings = Settings()
