@@ -52,6 +52,7 @@ export type Client = {
   id: string;
   name: string;
   domain: string | null;
+  contact_emails: string[];
   slack_channel_ids: string[];
   jira_project_keys: string[];
   drive_folder_ids: string[];

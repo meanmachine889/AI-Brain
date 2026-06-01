@@ -15,6 +15,7 @@ import { relativeTime, sourceLabel } from "@/lib/format";
 import { Nav } from "@/components/nav";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -34,6 +35,7 @@ export default function ClientDetailPage() {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   // ask bar
   const [question, setQuestion] = useState("");
@@ -66,7 +68,7 @@ export default function ClientDetailPage() {
   async function sync() {
     setSyncing(true);
     try {
-      await api("/integrations/slack/sync", { method: "POST" });
+      await api("/integrations/sync", { method: "POST" });
       toast.success("Sync started — summary will refresh shortly");
       // give the worker a few seconds, then reload the summary
       setTimeout(load, 5000);
@@ -121,10 +123,28 @@ export default function ClientDetailPage() {
                   </p>
                 )}
               </div>
-              <Button onClick={sync} disabled={syncing} variant="outline">
-                {syncing ? "Syncing..." : "Sync now"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setEditing((e) => !e)}
+                  variant="ghost"
+                >
+                  {editing ? "Close" : "Edit"}
+                </Button>
+                <Button onClick={sync} disabled={syncing} variant="outline">
+                  {syncing ? "Syncing..." : "Sync now"}
+                </Button>
+              </div>
             </div>
+
+            {editing && (
+              <EditClientForm
+                client={client}
+                onSaved={() => {
+                  setEditing(false);
+                  load();
+                }}
+              />
+            )}
 
             {/* Summary */}
             <Card>
@@ -209,5 +229,112 @@ export default function ClientDetailPage() {
         )}
       </main>
     </>
+  );
+}
+
+function EditClientForm({
+  client,
+  onSaved,
+}: {
+  client: Client;
+  onSaved: () => void;
+}) {
+  const join = (a: string[]) => a.join(", ");
+  const split = (s: string) =>
+    s.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
+
+  const [name, setName] = useState(client.name);
+  const [domain, setDomain] = useState(client.domain ?? "");
+  const [contacts, setContacts] = useState(join(client.contact_emails));
+  const [channels, setChannels] = useState(join(client.slack_channel_ids));
+  const [jiraKeys, setJiraKeys] = useState(join(client.jira_project_keys));
+  const [saving, setSaving] = useState(false);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api(`/clients/${client.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name,
+          domain: domain || null,
+          contact_emails: split(contacts),
+          slack_channel_ids: split(channels),
+          jira_project_keys: split(jiraKeys),
+        }),
+      });
+      toast.success("Client updated");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Edit client</CardTitle>
+        <CardDescription>
+          Map this client&apos;s data sources. Email/calendar match by domain +
+          contact addresses; Slack/Jira by channel/project.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={save} className="grid sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Name</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">
+              Domain (Gmail/Calendar match)
+            </label>
+            <Input
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              placeholder="acme.com"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">
+              Contact emails (comma-sep)
+            </label>
+            <Input
+              value={contacts}
+              onChange={(e) => setContacts(e.target.value)}
+              placeholder="john@acme.com, jane@gmail.com"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">
+              Slack channel IDs
+            </label>
+            <Input
+              value={channels}
+              onChange={(e) => setChannels(e.target.value)}
+              placeholder="C012..."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">
+              Jira project keys
+            </label>
+            <Input
+              value={jiraKeys}
+              onChange={(e) => setJiraKeys(e.target.value)}
+              placeholder="KAN, PROJ"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Save changes"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

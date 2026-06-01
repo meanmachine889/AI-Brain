@@ -23,6 +23,13 @@ Question: {question}
 Relevant context:
 {chunks}
 
-Answer the question concisely using only the context above. If the answer is not in the context, say "I don't have that information in the recent activity." Cite which source (Slack/email/Jira/Drive) the information came from.
+Answer using only the context above. Be specific and informative: include the
+relevant details — what each item is actually about (e.g. the ticket's subject or
+description, deliverables, people, dates, status) — not just identifiers or names.
+For example, prefer "KAN-1: Nav bar improvements (To Do)" over just "KAN-1 (To Do)".
+Keep it tight, but don't drop substance the user would care about.
+
+If the answer is not in the context, say "I don't have that information in the
+recent activity." Cite which source (Slack/email/Jira/Drive) each fact came from.
 
 Answer:"""

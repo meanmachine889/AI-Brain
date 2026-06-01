@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
+import httpx
 import jwt
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -20,6 +21,16 @@ SLACK_SCOPES = [
     "groups:history", "groups:read",
     "users:read", "team:read",
 ]
+
+# offline_access -> get a refresh_token (Jira access tokens expire in ~1h)
+JIRA_SCOPES = ["read:jira-work", "read:jira-user", "offline_access"]
+JIRA_AUTH_URL = "https://auth.atlassian.com/authorize"
+JIRA_TOKEN_URL = "https://auth.atlassian.com/oauth/token"
+JIRA_RESOURCES_URL = "https://api.atlassian.com/oauth/token/accessible-resources"
+
+GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 
 # ---- signed state: carries agency_id through the OAuth round-trip ----
@@ -112,6 +123,191 @@ async def slack_sync(agency: Agency = Depends(get_current_agency)):
     from workers.ingestion.slack import ingest_for_agency
     ingest_for_agency.delay(agency.id)
     return {"status": "ingestion triggered"}
+
+
+# ---- Jira OAuth (3LO) ----
+@router.get("/jira/connect")
+async def jira_connect(agency: Agency = Depends(get_current_agency)):
+    params = {
+        "audience": "api.atlassian.com",
+        "client_id": settings.jira_client_id,
+        "scope": " ".join(JIRA_SCOPES),       # includes offline_access -> refresh token
+        "redirect_uri": settings.jira_redirect_uri,
+        "state": _make_state(agency.id),
+        "response_type": "code",
+        "prompt": "consent",
+    }
+    return {"url": f"{JIRA_AUTH_URL}?" + urlencode(params)}
+
+
+@router.get("/jira/callback")
+async def jira_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
+    agency_id = _read_state(state)
+
+    async with httpx.AsyncClient(timeout=30) as http:
+        # 1. exchange the auth code for tokens
+        token_resp = await http.post(
+            JIRA_TOKEN_URL,
+            json={
+                "grant_type": "authorization_code",
+                "client_id": settings.jira_client_id,
+                "client_secret": settings.jira_client_secret,
+                "code": code,
+                "redirect_uri": settings.jira_redirect_uri,
+            },
+        )
+        if token_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail=f"Jira token exchange failed: {token_resp.text}")
+        tok = token_resp.json()
+
+        # 2. look up the cloudid of the authorized site
+        res_resp = await http.get(
+            JIRA_RESOURCES_URL,
+            headers={"Authorization": f"Bearer {tok['access_token']}"},
+        )
+        resources = res_resp.json()
+        if not resources:
+            raise HTTPException(status_code=400, detail="No accessible Jira sites for this account")
+        site = resources[0]  # first authorized site
+
+    expires_at = datetime.utcnow() + timedelta(seconds=tok.get("expires_in", 3600))
+
+    existing = (
+        await db.execute(
+            select(Integration).where(
+                Integration.agency_id == agency_id,
+                Integration.provider == "jira",
+            )
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        existing.access_token = tok["access_token"]
+        existing.refresh_token = tok.get("refresh_token")
+        existing.workspace_id = site["id"]          # cloudid
+        existing.workspace_name = site.get("name") or site.get("url")
+        existing.expires_at = expires_at
+        existing.scopes = JIRA_SCOPES
+    else:
+        db.add(Integration(
+            agency_id=agency_id,
+            provider="jira",
+            access_token=tok["access_token"],
+            refresh_token=tok.get("refresh_token"),
+            workspace_id=site["id"],
+            workspace_name=site.get("name") or site.get("url"),
+            expires_at=expires_at,
+            scopes=JIRA_SCOPES,
+        ))
+    await db.commit()
+
+    from workers.ingestion.jira import ingest_for_agency
+    ingest_for_agency.delay(agency_id)
+
+    return RedirectResponse(url="http://localhost:3000/integrations?connected=jira")
+
+
+# ---- Gmail OAuth (Google) ----
+@router.get("/gmail/connect")
+async def gmail_connect(agency: Agency = Depends(get_current_agency)):
+    params = {
+        "client_id": settings.google_client_id,
+        "redirect_uri": settings.google_redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(GMAIL_SCOPES),
+        "access_type": "offline",   # -> refresh token
+        "prompt": "consent",        # force refresh token even on re-connect
+        "state": _make_state(agency.id),
+    }
+    return {"url": f"{GOOGLE_AUTH_URL}?" + urlencode(params)}
+
+
+@router.get("/google/callback")
+async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
+    agency_id = _read_state(state)
+
+    async with httpx.AsyncClient(timeout=30) as http:
+        token_resp = await http.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "redirect_uri": settings.google_redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
+        if token_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail=f"Google token exchange failed: {token_resp.text}")
+        tok = token_resp.json()
+
+        # identify the connected mailbox
+        prof = await http.get(
+            "https://gmail.googleapis.com/gmail/v1/users/me/profile",
+            headers={"Authorization": f"Bearer {tok['access_token']}"},
+        )
+        email = prof.json().get("emailAddress")
+
+    expires_at = datetime.utcnow() + timedelta(seconds=tok.get("expires_in", 3600))
+
+    existing = (
+        await db.execute(
+            select(Integration).where(
+                Integration.agency_id == agency_id,
+                Integration.provider == "gmail",
+            )
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        existing.access_token = tok["access_token"]
+        if tok.get("refresh_token"):  # Google omits it on re-consent sometimes
+            existing.refresh_token = tok["refresh_token"]
+        existing.workspace_name = email
+        existing.expires_at = expires_at
+        existing.scopes = GMAIL_SCOPES
+    else:
+        db.add(Integration(
+            agency_id=agency_id,
+            provider="gmail",
+            access_token=tok["access_token"],
+            refresh_token=tok.get("refresh_token"),
+            workspace_name=email,
+            expires_at=expires_at,
+            scopes=GMAIL_SCOPES,
+        ))
+    await db.commit()
+
+    from workers.ingestion.gmail import ingest_for_agency
+    ingest_for_agency.delay(agency_id)
+
+    return RedirectResponse(url="http://localhost:3000/integrations?connected=gmail")
+
+
+# ---- generic sync: fan out to whatever this agency has connected ----
+@router.post("/sync")
+async def sync_all(
+    agency: Agency = Depends(get_current_agency),
+    db: AsyncSession = Depends(get_db),
+):
+    integs = (
+        await db.execute(select(Integration).where(Integration.agency_id == agency.id))
+    ).scalars().all()
+    triggered = []
+    for i in integs:
+        if i.provider == "slack":
+            from workers.ingestion.slack import ingest_for_agency as slack_ingest
+            slack_ingest.delay(agency.id)
+            triggered.append("slack")
+        elif i.provider == "jira":
+            from workers.ingestion.jira import ingest_for_agency as jira_ingest
+            jira_ingest.delay(agency.id)
+            triggered.append("jira")
+        elif i.provider == "gmail":
+            from workers.ingestion.gmail import ingest_for_agency as gmail_ingest
+            gmail_ingest.delay(agency.id)
+            triggered.append("gmail")
+    return {"triggered": triggered}
 
 
 # ---- generic integration management ----

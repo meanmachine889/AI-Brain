@@ -169,16 +169,29 @@
 
 ---
 
-### Step 13: Gmail integration
-- [ ] Google OAuth flow (same as Slack pattern)
-- [ ] Pull emails where client domain appears in From/To
-- [ ] Chunk email body, embed, store as `DataChunk`
+### Step 13: Gmail integration — DONE
+- [x] Google OAuth (gmail.readonly, access_type=offline -> refresh token); /gmail/connect + /google/callback
+- [x] Token refresh (Google keeps same refresh_token); identifies mailbox via users/me/profile
+- [x] SIGNAL-MATCHED (no container): query by client.domain + contact_emails (from:/to: + after:)
+- [x] MIME body parsing: walk parts, prefer text/plain, strip HTML fallback, base64url decode
+- [x] Dedupe by message id; embed; store with from/to/subject/thread_id metadata; summarize
+- [x] Registered in celery include + beat (:15) + generic sync; frontend Connect Gmail (live)
+- [x] Tested live: 3 emails matched by domain, bodies parsed, fused into summary
+- [x] Added `contact_emails` field to Client (migration 403de93ef919, backfilled [])
+- [x] Built Edit-client UI (closes the gap): edit name/domain/contact_emails/slack/jira via PATCH
+- [x] Improved ASK prompt: answers now include ticket subjects/details, not just IDs
+- NOTE: TEsting client now fuses slack(5)+jira(3)+gmail(3) — 3 sources in one brain
 
-### Step 13b: Jira integration
-- [ ] Jira OAuth or API token
-- [ ] Pull issues per client project
-- [ ] Chunk: title + description + comments, embed, store
-- [ ] Ticket status stored in chunk metadata (used by alert rules)
+### Step 13b: Jira integration — DONE (OAuth 3LO)
+- [x] OAuth 3LO (not API token — professional/multi-tenant): connect + callback, cloudid lookup, offline_access refresh token
+- [x] Token refresh in worker (access tokens expire ~1h; Atlassian rotates refresh tokens)
+- [x] Pull issues per client project (JQL updated>=-7d via /search/jql), ADF->text helper
+- [x] Chunk: title+status+description+comments, embed, UPSERT (tickets change), status/assignee/priority metadata
+- [x] Registered in celery include + beat (every 2h, :30); generic /integrations/sync fans out slack+jira
+- [x] Frontend: Connect Jira button (generalized), jira_project_keys in add-client form
+- [x] Tested live on real KAN project: 3 issues ingested, summary fused Slack+Jira (8 chunks),
+      ticket_stale alert fired for KAN-2 (the dormant rule is now active)
+- GAP FOUND: no edit-client UI (can't add Jira keys to an existing client) — patched via DB for test; TODO build it
 
 ### Step 13c: Google Drive integration
 - [ ] Google OAuth (extra Drive scope on same credentials as Gmail)

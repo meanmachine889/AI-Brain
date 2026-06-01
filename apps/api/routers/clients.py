@@ -16,6 +16,7 @@ router = APIRouter()
 class ClientCreate(BaseModel):
     name: str
     domain: str | None = None
+    contact_emails: list[str] = []
     slack_channel_ids: list[str] = []
     jira_project_keys: list[str] = []
     drive_folder_ids: list[str] = []
@@ -24,6 +25,7 @@ class ClientCreate(BaseModel):
 class ClientUpdate(BaseModel):
     name: str | None = None
     domain: str | None = None
+    contact_emails: list[str] | None = None
     slack_channel_ids: list[str] | None = None
     jira_project_keys: list[str] | None = None
     drive_folder_ids: list[str] | None = None
@@ -34,6 +36,7 @@ class ClientOut(BaseModel):
     id: str
     name: str
     domain: str | None
+    contact_emails: list[str]
     slack_channel_ids: list[str]
     jira_project_keys: list[str]
     drive_folder_ids: list[str]
@@ -79,6 +82,7 @@ async def create_client(
         agency_id=agency.id,
         name=body.name,
         domain=body.domain,
+        contact_emails=body.contact_emails,
         slack_channel_ids=body.slack_channel_ids,
         jira_project_keys=body.jira_project_keys,
         drive_folder_ids=body.drive_folder_ids,

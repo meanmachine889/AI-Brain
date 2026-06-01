@@ -189,22 +189,23 @@ function AddClientForm({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
   const [channels, setChannels] = useState("");
+  const [jiraKeys, setJiraKeys] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const splitList = (s: string) =>
+    s.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
-      const slack_channel_ids = channels
-        .split(/[\s,]+/)
-        .map((s) => s.trim())
-        .filter(Boolean);
       await api("/clients", {
         method: "POST",
         body: JSON.stringify({
           name,
           domain: domain || null,
-          slack_channel_ids,
+          slack_channel_ids: splitList(channels),
+          jira_project_keys: splitList(jiraKeys),
         }),
       });
       toast.success("Client created");
@@ -219,7 +220,7 @@ function AddClientForm({ onCreated }: { onCreated: () => void }) {
   return (
     <Card>
       <CardContent className="pt-6">
-        <form onSubmit={submit} className="grid sm:grid-cols-3 gap-3 items-end">
+        <form onSubmit={submit} className="grid sm:grid-cols-4 gap-3 items-end">
           <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground">Client name</label>
             <Input
@@ -249,7 +250,17 @@ function AddClientForm({ onCreated }: { onCreated: () => void }) {
               placeholder="C012..., C034..."
             />
           </div>
-          <div className="sm:col-span-3">
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">
+              Jira project keys
+            </label>
+            <Input
+              value={jiraKeys}
+              onChange={(e) => setJiraKeys(e.target.value)}
+              placeholder="KAN, PROJ"
+            />
+          </div>
+          <div className="sm:col-span-4">
             <Button type="submit" disabled={saving}>
               {saving ? "Saving..." : "Create client"}
             </Button>

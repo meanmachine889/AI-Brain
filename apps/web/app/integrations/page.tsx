@@ -17,8 +17,8 @@ import {
 
 const PROVIDERS = [
   { id: "slack", name: "Slack", desc: "Channels & messages", live: true },
-  { id: "gmail", name: "Gmail", desc: "Client emails", live: false },
-  { id: "jira", name: "Jira", desc: "Tickets & status", live: false },
+  { id: "jira", name: "Jira", desc: "Tickets & status", live: true },
+  { id: "gmail", name: "Gmail", desc: "Client emails (matched by domain)", live: true },
   { id: "drive", name: "Google Drive", desc: "Shared docs", live: false },
 ];
 
@@ -43,8 +43,11 @@ export default function IntegrationsPage() {
       router.replace("/login");
       return;
     }
-    if (new URLSearchParams(window.location.search).get("connected") === "slack") {
-      toast.success("Slack connected!");
+    const connectedProvider = new URLSearchParams(window.location.search).get(
+      "connected"
+    );
+    if (connectedProvider) {
+      toast.success(`${connectedProvider} connected!`);
     }
     load();
   }, [router, load]);
@@ -52,11 +55,13 @@ export default function IntegrationsPage() {
   const connected = (id: string) =>
     integrations.find((i) => i.provider === id);
 
-  async function connectSlack() {
+  async function connect(provider: string) {
     setConnecting(true);
     try {
-      const { url } = await api<{ url: string }>("/integrations/slack/connect");
-      window.location.href = url; // hand off to Slack's OAuth screen
+      const { url } = await api<{ url: string }>(
+        `/integrations/${provider}/connect`
+      );
+      window.location.href = url; // hand off to the provider's OAuth screen
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
       setConnecting(false);
@@ -119,7 +124,7 @@ export default function IntegrationsPage() {
                     </div>
                   ) : p.live ? (
                     <Button
-                      onClick={connectSlack}
+                      onClick={() => connect(p.id)}
                       disabled={connecting || loading}
                     >
                       {connecting ? "Redirecting..." : `Connect ${p.name}`}
