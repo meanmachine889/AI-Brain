@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
@@ -6,13 +7,17 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from slack_sdk.web.async_client import AsyncWebClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.security import get_current_agency
 from db.session import get_db
-from db.models import Agency, Integration
+from db.models import Agency, Client, DataChunk, Integration
+
+GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke"
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -41,14 +46,16 @@ def _make_state(agency_id: str) -> str:
             "purpose": "oauth",
             "exp": datetime.now(timezone.utc) + timedelta(minutes=10),
         },
-        settings.jwt_secret,
+        settings.oauth_state_signing_key,
         algorithm="HS256",
     )
 
 
 def _read_state(state: str) -> str:
     try:
-        payload = jwt.decode(state, settings.jwt_secret, algorithms=["HS256"])
+        payload = jwt.decode(
+            state, settings.oauth_state_signing_key, algorithms=["HS256"]
+        )
         if payload.get("purpose") != "oauth":
             raise ValueError("wrong purpose")
         return payload["agency_id"]
@@ -157,7 +164,8 @@ async def jira_callback(code: str, state: str, db: AsyncSession = Depends(get_db
             },
         )
         if token_resp.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"Jira token exchange failed: {token_resp.text}")
+            logger.error("Jira token exchange failed: %s", token_resp.text)
+            raise HTTPException(status_code=400, detail="Jira token exchange failed")
         tok = token_resp.json()
 
         # 2. look up the cloudid of the authorized site
@@ -238,7 +246,8 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
             },
         )
         if token_resp.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"Google token exchange failed: {token_resp.text}")
+            logger.error("Google token exchange failed: %s", token_resp.text)
+            raise HTTPException(status_code=400, detail="Google token exchange failed")
         tok = token_resp.json()
 
         # identify the connected mailbox
@@ -330,6 +339,24 @@ async def list_integrations(
     ]
 
 
+async def _revoke_remote_token(integ: Integration) -> None:
+    """Best-effort: tell the provider to kill the token so leaked copies die too.
+
+    Never raises — a failed revoke must not block disconnecting. (Atlassian/Jira
+    has no public OAuth revoke endpoint; its access tokens expire in ~1h.)
+    """
+    try:
+        if integ.provider == "slack":
+            await AsyncWebClient(token=integ.access_token).auth_revoke()
+        elif integ.provider == "gmail":
+            # revoking the refresh token revokes the whole grant
+            token = integ.refresh_token or integ.access_token
+            async with httpx.AsyncClient(timeout=15) as http:
+                await http.post(GOOGLE_REVOKE_URL, data={"token": token})
+    except Exception:
+        pass
+
+
 @router.delete("/{provider}")
 async def delete_integration(
     provider: str,
@@ -346,6 +373,20 @@ async def delete_integration(
     ).scalar_one_or_none()
     if not integ:
         raise HTTPException(status_code=404, detail="Integration not found")
+
+    # 1. kill the token at the provider (best-effort, even leaked copies)
+    await _revoke_remote_token(integ)
+
+    # 2. purge the data we ingested from this source for this agency's clients
+    client_ids = select(Client.id).where(Client.agency_id == agency.id)
+    await db.execute(
+        delete(DataChunk).where(
+            DataChunk.client_id.in_(client_ids),
+            DataChunk.source == provider,
+        )
+    )
+
+    # 3. drop our stored token
     await db.delete(integ)
     await db.commit()
     return {"deleted": True}

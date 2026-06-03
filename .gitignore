@@ -33,3 +33,6 @@ agency-ai-brain-buildplan-1.md
 *.log
 .idea/
 .vscode/
+
+# Celery beat local schedule state (binary, regenerated at runtime)
+celerybeat-schedule*

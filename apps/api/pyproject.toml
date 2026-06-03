@@ -12,6 +12,7 @@ dependencies = [
     "atlassian-python-api==3.41.*",
     "bcrypt>=5.0.0",
     "celery==5.4.*",
+    "cryptography>=48.0.0",
     "email-validator>=2.3.0",
     "fastapi==0.115.*",
     "google-api-python-client==2.150.*",
@@ -32,3 +33,12 @@ dependencies = [
     "sqlalchemy==2.0.*",
     "uvicorn[standard]==0.32.*",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
