@@ -3,6 +3,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str
+    # Restricted-role URL for the API request path (subject to row-level security).
+    # Falls back to database_url if unset — in that case the API connects as the
+    # table owner and RLS is bypassed, so set this to the app_user role in prod.
+    app_database_url: str = ""
     redis_url: str
     anthropic_api_key: str = ""
     openai_api_key: str = ""

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from db.session import get_db
+from db.session import get_db, set_agency_context
 from db.models import Agency
 
 bearer = HTTPBearer()
@@ -44,6 +44,10 @@ async def get_current_agency(
         agency_id = payload.get("agency_id")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Scope every subsequent query in this request to the authenticated agency so
+    # RLS policies fail closed (the `agencies` table itself is not under RLS).
+    await set_agency_context(db, agency_id)
 
     agency = (
         await db.execute(select(Agency).where(Agency.id == agency_id))

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.security import get_current_agency
-from db.session import get_db
+from db.session import get_db, set_agency_context
 from db.models import Agency, Client, DataChunk, Integration
 
 GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke"
@@ -80,6 +80,7 @@ async def slack_connect(agency: Agency = Depends(get_current_agency)):
 async def slack_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
     """Slack redirects here. Exchange code -> bot token, store it, kick off ingestion."""
     agency_id = _read_state(state)
+    await set_agency_context(db, agency_id)  # scope this session for RLS
 
     resp = await AsyncWebClient().oauth_v2_access(
         client_id=settings.slack_client_id,
@@ -150,6 +151,7 @@ async def jira_connect(agency: Agency = Depends(get_current_agency)):
 @router.get("/jira/callback")
 async def jira_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
     agency_id = _read_state(state)
+    await set_agency_context(db, agency_id)  # scope this session for RLS
 
     async with httpx.AsyncClient(timeout=30) as http:
         # 1. exchange the auth code for tokens
@@ -233,6 +235,7 @@ async def gmail_connect(agency: Agency = Depends(get_current_agency)):
 @router.get("/google/callback")
 async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
     agency_id = _read_state(state)
+    await set_agency_context(db, agency_id)  # scope this session for RLS
 
     async with httpx.AsyncClient(timeout=30) as http:
         token_resp = await http.post(
