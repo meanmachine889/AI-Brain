@@ -71,9 +71,43 @@ async def _check_client(db, client: Client):
                 "Latest summary indicates client is blocked or waiting",
             )
 
+    # rule 4: deadline approaching — a Jira ticket due within 48h (or overdue)
+    # that isn't done yet. due_date is stored date-only (e.g. "2026-06-06").
+    open_tickets = (
+        await db.execute(
+            select(DataChunk).where(
+                DataChunk.client_id == client.id,
+                DataChunk.source == "jira",
+            )
+        )
+    ).scalars().all()
+    for t in open_tickets:
+        md = t.metadata_ or {}
+        due_raw = md.get("due_date")
+        if not due_raw or md.get("status") in ("Done", "Closed", "Resolved"):
+            continue
+        try:
+            due = datetime.fromisoformat(due_raw)
+        except ValueError:
+            continue
+        delta = due - now
+        if delta <= timedelta(hours=48):  # due in the next 2 days, or already overdue
+            overdue = delta < timedelta(0)
+            await _create_alert(
+                db, client.id, "deadline_approaching",
+                "high" if overdue else "medium",
+                f"Ticket {md.get('ticket_key')} is "
+                f"{'overdue' if overdue else 'due'} ({due.date()}) and not done",
+                metadata={"ticket_key": md.get("ticket_key"), "due_date": due_raw},
+            )
+
 
 async def _create_alert(db, client_id, type_, severity, message, metadata=None):
-    # dedupe: skip if an identical unresolved alert was created in the last 24h
+    metadata = metadata or {}
+    ticket_key = metadata.get("ticket_key")
+    # dedupe: skip if a matching unresolved alert was created in the last 24h.
+    # Ticket-scoped alerts (ticket_stale, deadline_approaching) match on the
+    # specific ticket, so each open ticket gets its own alert.
     existing = (
         await db.execute(
             select(Alert).where(
@@ -83,9 +117,10 @@ async def _create_alert(db, client_id, type_, severity, message, metadata=None):
                 Alert.created_at > datetime.utcnow() - timedelta(hours=24),
             )
         )
-    ).scalar_one_or_none()
-    if existing:
-        return
+    ).scalars().all()
+    for a in existing:
+        if ticket_key is None or (a.metadata_ or {}).get("ticket_key") == ticket_key:
+            return
     db.add(Alert(
         client_id=client_id, type=type_, severity=severity,
         message=message, metadata_=metadata or {},

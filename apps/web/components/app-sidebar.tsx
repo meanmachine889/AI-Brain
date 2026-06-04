@@ -26,6 +26,7 @@ import {
   type Client,
   type Dashboard,
   type DashboardClient,
+  type SummaryResponse,
 } from "@/lib/api";
 import {
   PROVIDER_ICON,
@@ -71,7 +72,7 @@ function initials(name: string): string {
 
 function scoreDot(score: number): string {
   if (score >= 60) return "bg-red-500";
-  if (score >= 30) return "bg-amber-500";
+  if (score >= 30) return "bg-stone-400";
   return "bg-emerald-500";
 }
 
@@ -130,9 +131,40 @@ export function AppSidebar() {
   async function sync() {
     if (syncing) return;
     setSyncing(true);
+    const id = activeId;
     try {
+      // The sync endpoint returns immediately while the worker ingests + re-
+      // summarizes in the background. Use the active client's summary
+      // `generated_at` as the real "worker finished" signal: capture it now,
+      // then poll until it changes so the spinner reflects actual progress.
+      const baseline = id
+        ? await api<SummaryResponse>(`/clients/${id}/summary`)
+            .then((s) => s.generated_at)
+            .catch(() => null)
+        : null;
+
       await api("/integrations/sync", { method: "POST" });
-      toast.success("Sync started — summary will refresh shortly");
+      toast.info("Syncing sources…");
+
+      let updated = false;
+      const deadline = Date.now() + 90_000;
+      while (id && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const gen = await api<SummaryResponse>(`/clients/${id}/summary`)
+          .then((s) => s.generated_at)
+          .catch(() => null);
+        if (gen && gen !== baseline) {
+          updated = true;
+          break;
+        }
+      }
+
+      await load(); // refresh sidebar (clients, attention scores, alerts)
+      // tell the open client page to refetch its summary + answers
+      window.dispatchEvent(new CustomEvent("sources-synced"));
+      toast.success(
+        updated ? "Sources updated" : "Sync running — data will appear shortly",
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync failed");
     } finally {
@@ -237,7 +269,7 @@ export function AppSidebar() {
                     className="data-active:bg-background data-active:shadow-soft data-active:ring-hairline"
                     render={<Link href={`/clients/${activeClient.id}`} onClick={go} />}
                   >
-                    <HugeiconsIcon icon={Home03Icon} className="text-link" />
+                    <HugeiconsIcon icon={Home03Icon} />
                     <span>Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -247,9 +279,9 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         tooltip={`${n} alert${n > 1 ? "s" : ""}`}
-                        render={<Link href={`/clients/${activeClient.id}#alerts`} onClick={go} />}
+                        render={<Link href={`/clients/${activeClient.id}/alerts`} onClick={go} />}
                       >
-                        <HugeiconsIcon icon={AlertCircleIcon} className="text-red-500" />
+                        <HugeiconsIcon icon={AlertCircleIcon} />
                         <span>Attention</span>
                         <span className="ml-auto text-xs tabular-nums text-muted-foreground">
                           {n}
@@ -285,7 +317,7 @@ export function AppSidebar() {
 
             {/* Integrations — one provider per row; colored if mapped to THIS
                 client, grey if not. Collapses to icon-only with the sidebar. */}
-            <SidebarGroup className="mt-auto">
+            <SidebarGroup>
               <SidebarGroupLabel>Integrations</SidebarGroupLabel>
               <SidebarMenu className="gap-1">
                 {ALL_PROVIDERS.map((p) => {
@@ -314,7 +346,7 @@ export function AppSidebar() {
                         <Icon
                           className={cn(
                             "size-4 transition",
-                            on ? "opacity-100" : "opacity-40 grayscale"
+                            on ? "opacity-100" : "opacity-40"
                           )}
                         />
                         <span className={cn(!on && "text-muted-foreground")}>

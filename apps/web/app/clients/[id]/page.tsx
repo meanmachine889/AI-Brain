@@ -3,7 +3,8 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowUp, Search, Sparkles } from "lucide-react";
+import { ArrowUp, Search } from "lucide-react";
+import ReactMarkdown, { type Components } from "react-markdown";
 import {
   api,
   getToken,
@@ -32,12 +33,30 @@ type Turn = {
   pending: boolean;
 };
 
-const SUGGESTIONS = [
-  "What are we blocked on?",
-  "What's due this week?",
-  "Summarize the latest updates",
-  "Anything I should be worried about?",
-];
+// Answers come back as Markdown from the model; render it instead of printing
+// raw `**`/`*`. Tailwind classes per element keep it on-brand without the
+// typography plugin (Tailwind v4 here).
+const ANSWER_MD: Components = {
+  p: ({ children }) => (
+    <p className="text-[15px] leading-relaxed [&:not(:first-child)]:mt-2">{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul className="my-1.5 list-disc space-y-1 pl-5 text-[15px] leading-relaxed">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="my-1.5 list-decimal space-y-1 pl-5 text-[15px] leading-relaxed">{children}</ol>
+  ),
+  li: ({ children }) => <li className="pl-0.5">{children}</li>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  a: ({ children, href }) => (
+    <a href={href} className="text-[--color-link] underline underline-offset-2">
+      {children}
+    </a>
+  ),
+  code: ({ children }) => (
+    <code className="rounded bg-muted px-1 py-0.5 text-[13px]">{children}</code>
+  ),
+};
 
 function ClientDetailView() {
   const router = useRouter();
@@ -81,6 +100,14 @@ function ClientDetailView() {
   useEffect(() => {
     if (turns.length) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [turns]);
+
+  // Refetch summary + client when a sidebar Sync finishes (it broadcasts this
+  // once the worker has re-ingested and regenerated the summary).
+  useEffect(() => {
+    const onSynced = () => load();
+    window.addEventListener("sources-synced", onSynced);
+    return () => window.removeEventListener("sources-synced", onSynced);
+  }, [load]);
 
   const closeConfig = () => router.replace(`/clients/${clientId}`);
 
@@ -172,9 +199,11 @@ function ClientDetailView() {
                           <span className="text-sm text-muted-foreground">Thinking…</span>
                         ) : (
                           <>
-                            <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
-                              {t.answer}
-                            </p>
+                            <div className="text-[15px] leading-relaxed">
+                              <ReactMarkdown components={ANSWER_MD}>
+                                {t.answer}
+                              </ReactMarkdown>
+                            </div>
                             {t.sources && t.sources.length > 0 && (
                               <div className="flex flex-wrap gap-1.5">
                                 {t.sources.map((s, j) => (
@@ -231,17 +260,8 @@ function ClientDetailView() {
                     </form>
 
                     {empty && (
-                      <div className="border-t">
-                        {SUGGESTIONS.map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => submit(s)}
-                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-accent/50"
-                          >
-                            <Sparkles className="size-4 text-link/80" />
-                            <span>{s}</span>
-                          </button>
-                        ))}
+                      <div className="border-t px-4 py-3 text-sm text-muted-foreground">
+                        Ask about risks, deadlines, or the latest activity to get started.
                       </div>
                     )}
                   </div>
