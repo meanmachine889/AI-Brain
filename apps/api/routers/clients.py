@@ -6,8 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_db
-from db.models import Client, Agency
-from core.security import get_current_agency
+from db.models import Client, Agency, Member, ClientMember
+from core.security import get_current_agency, get_current_member, require_owner
 
 router = APIRouter()
 
@@ -45,13 +45,14 @@ class ClientOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ---- helper: fetch a client that BELONGS to this agency, else 404 ----
-async def _get_owned_client(client_id: str, agency: Agency, db: AsyncSession) -> Client:
+# ---- helper: fetch a client in this agency, else 404 (RLS further scopes a
+#      non-owner member to only their own clients) ----
+async def _get_client(client_id: str, agency_id: str, db: AsyncSession) -> Client:
     client = (
         await db.execute(
             select(Client).where(
                 Client.id == client_id,
-                Client.agency_id == agency.id,   # <-- the scoping guard
+                Client.agency_id == agency_id,   # <-- the scoping guard
             )
         )
     ).scalar_one_or_none()
@@ -75,11 +76,11 @@ async def list_clients(
 @router.post("", response_model=ClientOut, status_code=201)
 async def create_client(
     body: ClientCreate,
-    agency: Agency = Depends(get_current_agency),
+    owner: Member = Depends(require_owner),  # only the owner creates clients
     db: AsyncSession = Depends(get_db),
 ):
     client = Client(
-        agency_id=agency.id,
+        agency_id=owner.agency_id,
         name=body.name,
         domain=body.domain,
         contact_emails=body.contact_emails,
@@ -99,17 +100,30 @@ async def get_client(
     agency: Agency = Depends(get_current_agency),
     db: AsyncSession = Depends(get_db),
 ):
-    return await _get_owned_client(client_id, agency, db)
+    return await _get_client(client_id, agency.id, db)
 
 
 @router.patch("/{client_id}", response_model=ClientOut)
 async def update_client(
     client_id: str,
     body: ClientUpdate,
-    agency: Agency = Depends(get_current_agency),
+    member: Member = Depends(get_current_member),
     db: AsyncSession = Depends(get_db),
 ):
-    client = await _get_owned_client(client_id, agency, db)
+    client = await _get_client(client_id, member.agency_id, db)
+    # config edits: owner, or a client 'admin' on THIS client
+    if not member.is_owner:
+        cm = (
+            await db.execute(
+                select(ClientMember).where(
+                    ClientMember.client_id == client.id,
+                    ClientMember.member_id == member.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if cm is None or cm.role != "admin":
+            raise HTTPException(status_code=403, detail="Admin role required")
+
     updates = body.model_dump(exclude_unset=True)
     if "metadata" in updates:                       # API field -> ORM attr metadata_
         client.metadata_ = updates.pop("metadata")
@@ -123,10 +137,10 @@ async def update_client(
 @router.delete("/{client_id}")
 async def delete_client(
     client_id: str,
-    agency: Agency = Depends(get_current_agency),
+    owner: Member = Depends(require_owner),  # only the owner deletes clients
     db: AsyncSession = Depends(get_db),
 ):
-    client = await _get_owned_client(client_id, agency, db)
+    client = await _get_client(client_id, owner.agency_id, db)
     await db.delete(client)
     await db.commit()
     return {"deleted": True}

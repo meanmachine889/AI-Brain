@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     google_api_key: str = ""
     # comma-separated list of allowed frontend origins (web, future mobile/admin, etc.)
     cors_origins: str = "http://localhost:3000"
+    # base URL of the web app — used to build invite links and OAuth return redirects
+    frontend_url: str = "http://localhost:3000"
     # comma-separated Fernet keys for encrypting OAuth tokens at rest, NEWEST FIRST.
     # In prod this comes from a secrets manager, never the DB or git. Rotate by
     # prepending a new key, re-encrypting, then dropping the old one.

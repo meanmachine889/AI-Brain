@@ -15,10 +15,10 @@ class Agency(Base):
     __tablename__ = "agencies"
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     plan: Mapped[str] = mapped_column(String(50), default="trial")  # trial | paid
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Auth lives on Member now (Google sign-in); the agency is just the tenant.
+    members = relationship("Member", back_populates="agency", cascade="all, delete-orphan")
     clients = relationship("Client", back_populates="agency", cascade="all, delete-orphan")
     integrations = relationship("Integration", back_populates="agency", cascade="all, delete-orphan")
 
@@ -42,6 +42,8 @@ class Client(Base):
     data_chunks = relationship("DataChunk", back_populates="client", cascade="all, delete-orphan")
     summaries = relationship("Summary", back_populates="client", cascade="all, delete-orphan")
     alerts = relationship("Alert", back_populates="client", cascade="all, delete-orphan")
+    client_members = relationship("ClientMember", back_populates="client", cascade="all, delete-orphan")
+    invites = relationship("ClientInvite", back_populates="client", cascade="all, delete-orphan")
 
 
 class Integration(Base):
@@ -114,3 +116,62 @@ class Alert(Base):
     metadata_: Mapped[dict] = mapped_column("metadata", JSON, default=dict)
     resolved: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Member(Base):
+    """A person who logs in (Google), scoped to one agency. The owner is the
+    Member with is_owner=true and sees all clients; others get per-client access
+    via ClientMember."""
+    __tablename__ = "members"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    agency_id: Mapped[str] = mapped_column(
+        ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)  # Google email
+    google_sub: Mapped[str | None] = mapped_column(String(255), unique=True)  # set on first login
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    tag: Mapped[str | None] = mapped_column(String(100))  # agency-wide free text, e.g. "Designer"
+    is_owner: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # bumped on logout / removal -> invalidates that member's outstanding JWTs
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    agency = relationship("Agency", back_populates="members")
+    client_members = relationship("ClientMember", back_populates="member", cascade="all, delete-orphan")
+
+
+class ClientMember(Base):
+    """Per-client access grant for a (non-owner) member."""
+    __tablename__ = "client_members"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    client_id: Mapped[str] = mapped_column(
+        ForeignKey("clients.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    member_id: Mapped[str] = mapped_column(
+        ForeignKey("members.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    role: Mapped[str] = mapped_column(String(20), nullable=False)  # admin | viewer
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    client = relationship("Client", back_populates="client_members")
+    member = relationship("Member", back_populates="client_members")
+    __table_args__ = (
+        Index("ux_client_member", "client_id", "member_id", unique=True),
+    )
+
+
+class ClientInvite(Base):
+    """A per-client invite link (owner-created). Only the token hash is stored."""
+    __tablename__ = "client_invites"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    client_id: Mapped[str] = mapped_column(
+        ForeignKey("clients.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    email: Mapped[str] = mapped_column(String(255), nullable=False)  # the invited Google email
+    role: Mapped[str] = mapped_column(String(20), nullable=False)  # admin | viewer
+    tag: Mapped[str | None] = mapped_column(String(100))  # applied if this creates the Member
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)  # sha256 hex
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    max_uses: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    uses: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    client = relationship("Client", back_populates="invites")

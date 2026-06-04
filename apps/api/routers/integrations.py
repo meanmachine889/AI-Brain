@@ -11,9 +11,9 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from core.security import get_current_agency
-from db.session import get_db, set_agency_context
-from db.models import Agency, Client, DataChunk, Integration
+from core.security import require_owner
+from db.session import get_db, set_principal_context
+from db.models import Client, DataChunk, Integration, Member
 
 GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
@@ -65,13 +65,13 @@ def _read_state(state: str) -> str:
 
 # ---- Slack OAuth ----
 @router.get("/slack/connect")
-async def slack_connect(agency: Agency = Depends(get_current_agency)):
+async def slack_connect(owner: Member = Depends(require_owner)):
     """Returns the Slack authorize URL. Frontend (or you) opens it in a browser."""
     params = {
         "client_id": settings.slack_client_id,
         "scope": ",".join(SLACK_SCOPES),
         "redirect_uri": settings.slack_redirect_uri,
-        "state": _make_state(agency.id),
+        "state": _make_state(owner.agency_id),
     }
     return {"url": "https://slack.com/oauth/v2/authorize?" + urlencode(params)}
 
@@ -80,7 +80,7 @@ async def slack_connect(agency: Agency = Depends(get_current_agency)):
 async def slack_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
     """Slack redirects here. Exchange code -> bot token, store it, kick off ingestion."""
     agency_id = _read_state(state)
-    await set_agency_context(db, agency_id)  # scope this session for RLS
+    await set_principal_context(db, agency_id)  # owner context (OAuth is owner-only)
 
     resp = await AsyncWebClient().oauth_v2_access(
         client_id=settings.slack_client_id,
@@ -126,22 +126,22 @@ async def slack_callback(code: str, state: str, db: AsyncSession = Depends(get_d
 
 
 @router.post("/slack/sync")
-async def slack_sync(agency: Agency = Depends(get_current_agency)):
+async def slack_sync(owner: Member = Depends(require_owner)):
     """Manual re-ingest trigger (a 'Sync now' button, and handy for testing)."""
     from workers.ingestion.slack import ingest_for_agency
-    ingest_for_agency.delay(agency.id)
+    ingest_for_agency.delay(owner.agency_id)
     return {"status": "ingestion triggered"}
 
 
 # ---- Jira OAuth (3LO) ----
 @router.get("/jira/connect")
-async def jira_connect(agency: Agency = Depends(get_current_agency)):
+async def jira_connect(owner: Member = Depends(require_owner)):
     params = {
         "audience": "api.atlassian.com",
         "client_id": settings.jira_client_id,
         "scope": " ".join(JIRA_SCOPES),       # includes offline_access -> refresh token
         "redirect_uri": settings.jira_redirect_uri,
-        "state": _make_state(agency.id),
+        "state": _make_state(owner.agency_id),
         "response_type": "code",
         "prompt": "consent",
     }
@@ -151,7 +151,7 @@ async def jira_connect(agency: Agency = Depends(get_current_agency)):
 @router.get("/jira/callback")
 async def jira_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
     agency_id = _read_state(state)
-    await set_agency_context(db, agency_id)  # scope this session for RLS
+    await set_principal_context(db, agency_id)  # owner context (OAuth is owner-only)
 
     async with httpx.AsyncClient(timeout=30) as http:
         # 1. exchange the auth code for tokens
@@ -219,7 +219,7 @@ async def jira_callback(code: str, state: str, db: AsyncSession = Depends(get_db
 
 # ---- Gmail OAuth (Google) ----
 @router.get("/gmail/connect")
-async def gmail_connect(agency: Agency = Depends(get_current_agency)):
+async def gmail_connect(owner: Member = Depends(require_owner)):
     params = {
         "client_id": settings.google_client_id,
         "redirect_uri": settings.google_redirect_uri,
@@ -227,7 +227,7 @@ async def gmail_connect(agency: Agency = Depends(get_current_agency)):
         "scope": " ".join(GMAIL_SCOPES),
         "access_type": "offline",   # -> refresh token
         "prompt": "consent",        # force refresh token even on re-connect
-        "state": _make_state(agency.id),
+        "state": _make_state(owner.agency_id),
     }
     return {"url": f"{GOOGLE_AUTH_URL}?" + urlencode(params)}
 
@@ -235,7 +235,7 @@ async def gmail_connect(agency: Agency = Depends(get_current_agency)):
 @router.get("/google/callback")
 async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
     agency_id = _read_state(state)
-    await set_agency_context(db, agency_id)  # scope this session for RLS
+    await set_principal_context(db, agency_id)  # owner context (OAuth is owner-only)
 
     async with httpx.AsyncClient(timeout=30) as http:
         token_resp = await http.post(
@@ -299,25 +299,25 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
 # ---- generic sync: fan out to whatever this agency has connected ----
 @router.post("/sync")
 async def sync_all(
-    agency: Agency = Depends(get_current_agency),
+    owner: Member = Depends(require_owner),
     db: AsyncSession = Depends(get_db),
 ):
     integs = (
-        await db.execute(select(Integration).where(Integration.agency_id == agency.id))
+        await db.execute(select(Integration).where(Integration.agency_id == owner.agency_id))
     ).scalars().all()
     triggered = []
     for i in integs:
         if i.provider == "slack":
             from workers.ingestion.slack import ingest_for_agency as slack_ingest
-            slack_ingest.delay(agency.id)
+            slack_ingest.delay(owner.agency_id)
             triggered.append("slack")
         elif i.provider == "jira":
             from workers.ingestion.jira import ingest_for_agency as jira_ingest
-            jira_ingest.delay(agency.id)
+            jira_ingest.delay(owner.agency_id)
             triggered.append("jira")
         elif i.provider == "gmail":
             from workers.ingestion.gmail import ingest_for_agency as gmail_ingest
-            gmail_ingest.delay(agency.id)
+            gmail_ingest.delay(owner.agency_id)
             triggered.append("gmail")
     return {"triggered": triggered}
 
@@ -325,11 +325,11 @@ async def sync_all(
 # ---- generic integration management ----
 @router.get("")
 async def list_integrations(
-    agency: Agency = Depends(get_current_agency),
+    owner: Member = Depends(require_owner),
     db: AsyncSession = Depends(get_db),
 ):
     integs = (
-        await db.execute(select(Integration).where(Integration.agency_id == agency.id))
+        await db.execute(select(Integration).where(Integration.agency_id == owner.agency_id))
     ).scalars().all()
     return [
         {
@@ -363,13 +363,13 @@ async def _revoke_remote_token(integ: Integration) -> None:
 @router.delete("/{provider}")
 async def delete_integration(
     provider: str,
-    agency: Agency = Depends(get_current_agency),
+    owner: Member = Depends(require_owner),
     db: AsyncSession = Depends(get_db),
 ):
     integ = (
         await db.execute(
             select(Integration).where(
-                Integration.agency_id == agency.id,
+                Integration.agency_id == owner.agency_id,
                 Integration.provider == provider,
             )
         )
@@ -381,7 +381,7 @@ async def delete_integration(
     await _revoke_remote_token(integ)
 
     # 2. purge the data we ingested from this source for this agency's clients
-    client_ids = select(Client.id).where(Client.agency_id == agency.id)
+    client_ids = select(Client.id).where(Client.agency_id == owner.agency_id)
     await db.execute(
         delete(DataChunk).where(
             DataChunk.client_id.in_(client_ids),

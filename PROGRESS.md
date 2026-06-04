@@ -234,8 +234,58 @@
 ## Current step
 > Update this line as you move through the build.
 
-**Working on:** Step 15 — Frontend (Next.js). Step 13 (Gmail/Jira/Drive) DEFERRED —
-full flow with Slack first; other integrations are the same pattern, added later.
+**Working on:** Step 16 — Multi-user (Google auth + per-client members).
+Security hardening (token encryption, erasure/cascade, Postgres RLS) is DONE and on
+`main` — see [SECURITY.md](SECURITY.md) for findings/progress/roadmap.
+
+---
+
+### Step 16: Multi-user — Google auth + per-client members
+
+**Model:** Agency = tenant. Every person is a `Member` of one agency (one email →
+one agency). The **owner** is a Member with `is_owner=true` (sees all clients). Other
+members get access **per client** via `ClientMember` (role `admin`|`viewer`) and carry
+an agency-wide free-text `tag` (e.g. "Designer"). Auth is **Google sign-in** for
+everyone (no passwords); we still mint our own session JWT with `token_version` so
+logout/revocation works. Invites are per-client, owner-only.
+
+Permissions: owner = everything; client `admin` = edit that client's config/source
+mapping (channels, Jira keys, domain, contacts); `viewer` = read/ask/resolve only.
+OAuth connections (Slack/Gmail/Jira) stay **owner-only** (single shared workspace).
+
+Backend: ✅ DONE (verified end-to-end, 13/13 flow checks + 25 unit tests pass)
+- [x] 16.1 Data model: Agency→tenant (drop email/password_hash); add `Member`,
+      `ClientMember`, `ClientInvite`
+- [x] 16.2 Migration + backfill an owner `Member` per existing agency + `app_user`
+      grants on the new tables (migration `c3d4e5f6a7b8`)
+- [x] 16.3 Session auth: verify Google ID token, mint session JWT w/ `token_version`,
+      `set_principal_context` (agency + member GUC for RLS). NOTE: GUC is re-applied
+      on every `after_begin` (a session-level GUC does NOT survive commit) — see
+      `db/session.py:_apply_rls_guc`
+- [x] 16.4 Auth endpoints: `/auth/google` (resolve: owner/member/invited/new),
+      `/auth/create-agency`, invite preview + `/auth/accept-invite`, `/auth/logout`,
+      `/auth/me`. Pre-auth endpoints run on `get_owner_db` (bypass RLS, enforce own checks)
+- [x] 16.5 `get_current_member` + `get_current_agency` (derived) + `require_owner`
+- [x] 16.6 Member/invite endpoints (`/clients/{id}/members`, `/clients/{id}/invites`)
+      — owner-gated (`routers/members.py`)
+- [x] 16.7 Role checks on writes (client create/delete owner-only; config edit
+      owner/admin; integrations owner-only)
+- [x] 16.8 RLS: member-context policies (per-client visibility for members;
+      integrations owner-only) — migration `d4e5f6a7b8c9`
+- [x] 16.9 Verified: full Google→onboarding→invite→accept→RLS-isolation→role→logout flow
+
+Frontend:
+- [ ] 16.10 Google Sign-In button + session handling (logout calls `/auth/logout`)
+- [ ] 16.11 Onboarding: "create your agency" vs "you've been invited to {Agency}" popup
+- [ ] 16.12 Members panel per client (list with role + tag, invite, change role, remove)
+
+**Premium (future, documented):** multiple Slack/Jira workspaces — per-client
+integrations gated by `Agency.plan`. Forward-compatible: relax `Integration`
+uniqueness + let a client reference its own connection; current single-workspace data
+stays valid. Not built now.
+
+**Done when:** owner signs up with Google + creates clients; owner invites a member to
+a client; member logs in, accepts, and sees only their client(s) with the right role.
 
 ---
 
