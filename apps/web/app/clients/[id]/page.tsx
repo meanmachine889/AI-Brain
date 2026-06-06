@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowUp, Search } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import rehypeCite from "@/lib/rehype-cite";
 import {
   api,
   getToken,
@@ -56,6 +57,13 @@ const ANSWER_MD: Components = {
   code: ({ children }) => (
     <code className="rounded bg-muted px-1 py-0.5 text-[13px]">{children}</code>
   ),
+  // source citations wrapped by rehypeCite — render quiet/faded
+  span: ({ className, children }) =>
+    typeof className === "string" && className.includes("cite") ? (
+      <span className="text-muted-foreground/70">{children}</span>
+    ) : (
+      <span className={className}>{children}</span>
+    ),
 };
 
 function ClientDetailView() {
@@ -197,7 +205,10 @@ function ClientDetailView() {
                         ) : (
                           <>
                             <div className="text-[15px] leading-relaxed">
-                              <ReactMarkdown components={ANSWER_MD}>
+                              <ReactMarkdown
+                                components={ANSWER_MD}
+                                rehypePlugins={[rehypeCite]}
+                              >
                                 {t.answer}
                               </ReactMarkdown>
                             </div>

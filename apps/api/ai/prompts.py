@@ -60,7 +60,10 @@ covered everything relevant. Guidelines:
   in the asked-about range, say so plainly and note the nearest activity instead
   ("Nothing from ~2 weeks ago; the earliest recent activity is May 30").
 - You may use light Markdown (bold, bullet lists) — it is rendered for the user.
-- Cite the source (Slack / email / Jira / Drive) for each fact.
+- Cite the source for each fact in ONE consistent inline format: `(Source, YYYY-MM-DD)`
+  using that item's date — e.g. `(Slack, 2026-05-30)`, `(Jira, 2026-06-01)`. Do NOT
+  copy the bracketed `[source · time]` tag from the context, and don't mix in other
+  citation styles. Refer to a ticket by its key (e.g. `KAN-2`) where relevant.
 
 If the answer genuinely isn't in the context, say "I don't have that information
 in the recent activity."
