@@ -1,76 +1,77 @@
 # Agency AI Brain — Frontend Guide & Handoff
 
 The web app (`apps/web`) is a **Next.js 16 (App Router) + React 19 + Tailwind v4 +
-shadcn/ui (Base UI variant)** client for the FastAPI backend. This doc captures the
-design direction, architecture, decisions, and gotchas so a new session can continue
-without re-reading everything.
+shadcn/ui (Base UI variant)** client for the FastAPI backend. This doc reflects the
+**current** state so a new session can continue without re-reading everything.
 
 > Backend contract lives at `apps/api` (`/docs`). The frontend only talks HTTP via
 > `lib/api.ts` (Bearer token in `localStorage`).
 
 ---
 
-## 1. Product model (IMPORTANT — single-client focus)
+## 1. Product model (single-client workstation)
 
-This is **not** a multi-client dashboard. It's a **single-client workstation**, Slack-style:
+Not a multi-client dashboard — a **single-client workstation**, Slack-style:
 
-- A **client switcher at the top of the sidebar** picks the active client.
+- A **client switcher at the top of the sidebar** selects the active client.
 - Everything (sidebar + main window) is **scoped to the selected client**.
-- On load, the app routes to the **oldest client** (`/` and `/dashboard` resolve to it).
-- There is **no "all clients" / overview home**. `/dashboard` is now *only* the
-  add-client onboarding screen (also reached via `?add=1`).
-- **Integrations are not a primary nav item.** Connecting providers (agency-level
-  OAuth) lives in the account menu → "Manage integrations" (`/integrations`).
-  The sidebar instead shows **per-client source status**.
+- On load the app routes to the **oldest client** (`/` and `/dashboard` resolve to it).
+- **No "all clients" home.** `/dashboard` is only the add-client onboarding (or `?add=1`).
+- **Integrations connection (agency OAuth)** lives in the account menu → "Manage
+  integrations" (`/integrations`); it is **not** a primary nav item. The sidebar shows
+  **per-client source mapping** instead.
 
 ---
 
 ## 2. Design system
 
-Primary spec: **`DESIGN-4.md`** (repo root) — "frosted glass workstation," ChatGPT-style.
-Light theme only. Achromatic grays + a single accent (Link Blue). Tokens are wired into
+Spec: `DESIGN-4.md` (repo root) — frosted workstation. **Light theme only**
+(`forcedTheme="light"` in `app/layout.tsx`; no theme toggle). The palette has been tuned
+**neutral / barely-warm** (not strong cream). Single accent = Link Blue. Tokens live in
 `app/globals.css`.
 
-### Palette (in `globals.css` `:root`)
-| Role | Value | Notes |
-|------|-------|-------|
-| `--background` (Snow) | `#ffffff` | page/cards |
-| `--foreground` (Carbon) | `#0d0d0d` | primary text |
-| `--muted` (Fog) | `#f9f9f9` | panels |
-| `--sidebar` (Fog) | `#f9f9f9` | sidebar bg |
-| `--muted-foreground` (Pewter) | `#5d5d5d` | secondary / "faded but readable" |
-| `--accent` (Arctic Mist) | `#ececec` | hover |
-| `--primary` (Carbon) | `#0d0d0d` | black filled button |
-| `--ring` / `--color-link` (Link Blue) | `#007aff` | focus + the only accent color |
-| `--border` | `rgba(13,13,13,0.08)` | hairline |
-| `--radius` | `0.625rem` (10px) | buttons/default; main ask input uses `28px` |
+### Palette (`globals.css` `:root`)
+| Role | Value |
+|------|-------|
+| `--background` / `--card` | `#ffffff` |
+| `--foreground` (text) | `#1d1c1a` |
+| `--muted` (fog) | `#f6f5f3` |
+| `--muted-foreground` (pewter) | `#6a6862` |
+| `--accent` (hover) | `#efeeea` |
+| `--primary` | `#1d1c1a` (fg `#fafafa`) |
+| `--sidebar` | `#f6f5f2` |
+| `--border` | `rgba(40,36,28,0.08)` |
+| `--ring` / `--color-link` | `#007aff` (only accent) |
+| `--destructive` | `#d2483f` |
+| `--radius` | `0.625rem` (ask card uses `24px`) |
 
-- **Font:** system `ui-sans-serif` stack (set as `--font-sans` in `:root`). The design's
-  "OpenAI Sans" → system-ui substitute. **Do not reintroduce Geist.** (SF Pro on macOS.)
-- **Theme is forced light** in `app/layout.tsx` (`forcedTheme="light"`). No theme toggle.
-- **Depth:** the spec says "avoid heavy shadows," but the user wants it to not look flat.
-  Use the soft utilities in `globals.css`: `.shadow-soft`, `.shadow-float`, `.ring-hairline`.
-  Keep depth subtle (hairline + faint drop), never heavy.
+- **Font:** system `ui-sans-serif` stack (set as `--font-sans`). No Geist.
+- **Depth utilities** (`globals.css`): `.shadow-soft`, `.shadow-raised`, `.shadow-float`,
+  `.ring-hairline`. Raised surfaces (switcher, active nav item, ask card, integration
+  rows when mapped) lift off the canvas with soft layered shadows.
+- **Canvas:** `.canvas-warm` (subtle white→`#f6f4f0` radial) on the main work area;
+  `.glow-warm` (faint amber) sits behind the ask card.
 
-### Target aesthetic (north star — not fully there yet)
-The user's reference is the **Dia/Arc "Ask anything"** screen: a **warm cream→amber
-gradient** canvas with a **frosted, floating, centered Ask card**, soft glow, and
-suggestion rows with source favicons. Current main window is more austere/gray —
-**the empty/home state should evolve toward that warm, centered, frosted feel**
-(a gradient backdrop + a prominent floating ask card + grounded suggestion rows).
-Keep it tasteful and within the neutral+Link-Blue palette unless the user okays warm tones.
+### Icons
+- **Hugeicons** (`@hugeicons/react` + `@hugeicons/core-free-icons`) for sidebar nav:
+  `<HugeiconsIcon icon={Home03Icon} />` (Home03, ReloadIcon, Settings01Icon, AlertCircleIcon).
+- **lucide-react** for misc chrome (Plus, Check, ChevronsUpDown, PanelLeft, Settings2,
+  LogOut, ArrowUp, Search).
+- **`components/brand-icons.tsx`** for provider marks (Slack/Jira/Gmail/Drive) +
+  `PROVIDER_ICON` / `PROVIDER_LABEL`.
 
 ---
 
-## 3. Information architecture / routing
+## 3. Routing
 
 | Route | Purpose |
 |-------|---------|
-| `/` | Resolver: → oldest client, or `/dashboard?add=1` if none. |
-| `/login` | Register/login (our JWT auth, not Clerk). Stores token, → `/`. |
-| `/dashboard` | Resolves to oldest client; renders **add-client onboarding** only (or with `?add=1`). |
-| `/clients/[id]` | **The main view** — chat-first: faded summary + ask box. `?edit=1` opens the sources editor. |
-| `/integrations` | Connect/manage agency OAuth (Slack/Jira/Gmail). Reached from account menu, not primary nav. |
+| `/` | Resolver → oldest client (or `/dashboard?add=1` if none). |
+| `/login` | Register/login (our JWT). |
+| `/dashboard` | Resolves to oldest client; renders **add-client onboarding** only (or `?add=1`). |
+| `/clients/[id]` | **Main view** — chat-first: faded summary + ask card. `?edit=1` opens the **Configuration dialog**. |
+| `/clients/[id]/alerts` | This client's alerts list with inline Resolve. |
+| `/integrations` | Agency OAuth connect (Slack/Jira/Gmail live; Drive "soon"). From account menu. |
 
 ---
 
@@ -78,95 +79,94 @@ Keep it tasteful and within the neutral+Link-Blue palette unless the user okays 
 
 ```
 app/
-  layout.tsx           ThemeProvider(forcedTheme=light) + TooltipProvider + Toaster
-  globals.css          DESIGN-4 palette, fonts, depth utilities
-  page.tsx             / -> oldest client (or onboarding)
-  login/page.tsx       auth
-  dashboard/page.tsx   resolver + AddClientForm (onboarding only)
-  clients/[id]/page.tsx  CHAT-FIRST client view + EditClientForm
-  integrations/page.tsx  agency OAuth connect (Slack/Jira/Gmail live; Drive "soon")
+  layout.tsx              ThemeProvider(forcedTheme=light) + TooltipProvider + Toaster
+  globals.css             palette, fonts, depth + canvas/glow utilities
+  page.tsx                / -> oldest client (or onboarding)
+  login/page.tsx          auth
+  dashboard/page.tsx      resolver + AddClientForm (onboarding only)
+  clients/[id]/page.tsx   CHAT-FIRST view + Configuration <Dialog> (Suspense + useSearchParams)
+  clients/[id]/alerts/page.tsx   alerts list + resolve
+  integrations/page.tsx   agency OAuth connect
 
 components/
-  app-shell.tsx        SidebarProvider + AppSidebar + SidebarInset; auth gate.
-                       Header is md:hidden (mobile-only drawer trigger).
-  app-sidebar.tsx      Client switcher (top) · per-client Sources icons · collapse · account menu
-  brand-icons.tsx      Slack/Jira/Gmail/Drive SVGs + PROVIDER_ICON/PROVIDER_LABEL maps
-  theme-provider.tsx   next-themes wrapper (forced light)
-  ui/                  shadcn (Base UI): sidebar, dropdown-menu, tooltip, sheet, card,
-                       button, input, textarea, badge, label, separator, skeleton, sonner
-
-lib/
-  api.ts               fetch wrapper (Bearer, 401/403->/login) + shared TS types
-  format.ts            relativeTime, scoreColor, severityVariant, sourceLabel
-hooks/
-  use-mobile.ts        shadcn sidebar mobile hook
+  app-shell.tsx           SidebarProvider + AppSidebar + SidebarInset; auth gate; header md:hidden
+  app-sidebar.tsx         switcher · Home/Attention/Sync/Configuration · Integrations rows · account
+  brand-icons.tsx         provider SVGs + maps
+  theme-provider.tsx      next-themes wrapper (forced light)
+  ui/                     shadcn (Base UI): sidebar, dropdown-menu, dialog, tooltip, sheet,
+                          card, button, input, textarea, badge, label, separator, skeleton, sonner
+lib/  api.ts (fetch+types) · format.ts (relativeTime, scoreColor, severityVariant, sourceLabel)
+hooks/ use-mobile.ts
 ```
 
-### Sidebar behavior (`app-sidebar.tsx`)
-- **Header:** client switcher — a `DropdownMenu` listing clients (with attention dots)
-  + "Add client". Active client shown with initials avatar. Collapses to icon mode.
-- **Content (when a client is active):**
-  - "Summary & chat" (→ client page) and "Edit sources" (→ `?edit=1`).
-  - **Sources row:** the 4 provider icons; **colored if mapped to THIS client, grey
-    (grayscale+opacity) if not** — `mappedProviders(client)` derives this from the
-    client's `slack_channel_ids` / `jira_project_keys` / `domain|contact_emails` /
-    `drive_folder_ids`. Clicking → `?edit=1`.
-- **Footer:** Collapse (inside sidebar, `useSidebar().toggleSidebar`), Account dropdown
-  (Manage integrations, Sign out). **No theme toggle.**
+### Sidebar (`app-sidebar.tsx`) — `variant="inset" collapsible="icon"`
+- **Header:** client switcher (DropdownMenu of clients + attention dot + "Add client").
+- **Client nav** (active client): **Home** (active, raised pill) · **Attention** (shown only
+  when `scores[id].alert_count > 0`, → `/clients/[id]/alerts`) · **Sync** (in-sidebar action,
+  POST `/integrations/sync`) · **Configuration** (→ `?edit=1`).
+  - **Sync polls for real completion.** The POST returns immediately while the worker ingests
+    + re-summarizes in the background, so `sync()` captures the active client's summary
+    `generated_at`, then polls `/clients/{id}/summary` (every 3s, ≤90s) until it changes —
+    the spinner stays "Syncing…" for the *actual* duration. On finish it refetches the sidebar
+    (`load()`) and broadcasts a `window` **`sources-synced`** event; the open client page
+    listens and refetches. (Avoids the old "fire-and-forget, never refreshes" bug.)
+- **Integrations group:** one provider per row — brand icon + label + a trailing **status dot**
+  (emerald if mapped to THIS client, hollow ring if not). `mappedProviders(client)` derives
+  mapping from `slack_channel_ids` / `jira_project_keys` / `domain|contact_emails` /
+  `drive_folder_ids`. Rows collapse to icon-only with the sidebar; click → `?edit=1`.
+- **Footer:** Collapse (`useSidebar().toggleSidebar`) + Account dropdown (Manage integrations,
+  Sign out).
 
 ### Client page (`clients/[id]/page.tsx`) — chat-first
-- Faded-but-readable **status summary** (Pewter) at top with an eyebrow + "generated Xh ago".
-- A scrolling **conversation** of Q&A turns (user bubble right, answer left + source chips).
-- A pinned, rounded **ask box** (28px radius, `shadow-soft`, Enter-to-send) — the default
-  focus of the window.
-- Action bar (top-right): "Sources" (toggles `EditClientForm`) + "Sync".
+- Warm canvas + glow. **Faded status summary** (Pewter) at top. Chat turns (user bubble right,
+  answer left + source chips). Frosted **ask card** (24px, `shadow-float`, Enter-to-send).
+- **Answers render Markdown.** The backend returns Markdown (bold/bullets); render via
+  **`react-markdown`** with a module-level `ANSWER_MD` component map (per-element Tailwind, since
+  there's no typography plugin on v4) — NOT raw `{t.answer}`, which printed literal `**`/`*`.
+- Listens for the sidebar's **`sources-synced`** event and refetches summary + client.
+- **Configuration** is a shadcn **`Dialog`** opened by `?edit=1` (the page wraps the view in
+  `<Suspense>` and reads `useSearchParams()`); `EditClientForm` PATCHes the client.
 
 ---
 
 ## 5. Conventions & gotchas (READ before editing UI)
 
-- **shadcn here is the Base UI variant**, not Radix. Composition uses the **`render`
-  prop**, not `asChild`. Pattern: `render={<Link href=... />}` or put children *inside*
-  the element in the render prop and **self-close** the wrapper:
-  ```tsx
-  <DropdownMenuTrigger render={<button>…children…</button>} />
-  ```
-  Passing a self-closed `render={<button/>}` AND separate children breaks the parser.
-- **`DropdownMenuLabel` is `Menu.GroupLabel`** → it MUST be inside a `DropdownMenuGroup`,
-  or you get a runtime `MenuGroupContext is missing` crash.
-- **Next 16:** client components read route params with `useParams()` (only *server*
-  components await the `params` promise). Avoid `useSearchParams()` without a Suspense
-  boundary — read `window.location.search` in an effect instead (see `?edit=1`/`?add=1`).
-- **AGENTS.md** in `apps/web` warns this Next is not training-data Next; check
-  `node_modules/next/dist/docs/` if an API surprises you.
-- **Auth:** `lib/api.ts` attaches the Bearer token and redirects to `/login` on 401/403.
-  `AppShell` also gates on `getToken()`.
-- **Lucide** is `lucide-react@^1.x` here — standard icon names work.
-- **Forms:** inline the field markup; don't define a `Field` subcomponent *inside* a
-  component (it remounts on each keystroke and loses input focus).
+- **shadcn = Base UI variant** (not Radix). Compose with the **`render` prop**, not `asChild`.
+  Put children *inside* the element in `render` and self-close the wrapper:
+  `<DropdownMenuTrigger render={<button>…</button>} />`.
+- **`DropdownMenuLabel` is `Menu.GroupLabel`** → must be inside a `DropdownMenuGroup`
+  (else runtime `MenuGroupContext is missing`).
+- **`useSearchParams()` is fine but needs a `<Suspense>` boundary** — the client page wraps
+  its body in `<Suspense fallback={null}>` for exactly this. (Alternative used elsewhere:
+  read `window.location.search` in an effect.)
+- **Next 16:** client components read route params via `useParams()` (only server components
+  await the `params` promise). See `apps/web/AGENTS.md` — check `node_modules/next/dist/docs/`
+  if an API surprises you.
+- **Auth:** `lib/api.ts` attaches Bearer + redirects to `/login` on 401/403; `AppShell` gates.
+- **Forms:** inline the field markup; don't define a `Field` subcomponent *inside* a component
+  (remounts each keystroke → input loses focus).
+- **Raised-active styling:** `data-active:bg-background data-active:shadow-soft data-active:ring-hairline`.
 
 ---
 
 ## 6. Status
 
-**Done this session**
-- DESIGN-4 palette + system font + depth utilities; forced light.
+**Done**
 - Single-client model; route to oldest client; `/dashboard` = onboarding only.
-- Sidebar: top client switcher, per-client source icons (grey/colored), collapse inside,
-  account menu; integrations removed from primary nav.
-- Client page rebuilt chat-first (faded summary + pinned ask box + chat turns + source chips).
-- Removed the outside (header) collapse button on desktop.
+- Neutral/barely-warm frosted palette, system font, forced light, depth + canvas/glow utils.
+- Sidebar: switcher, Home/Attention/Sync/Configuration, per-provider Integrations rows with
+  status dots, collapse, account menu, Hugeicons.
+- Client page chat-first; Configuration as a Dialog; alerts on their own route.
 
-**TODO / polish (next session)**
-- Push the empty/home state toward the **warm frosted "Ask anything"** north-star
-  (gradient canvas, floating ask card, suggestion rows with source favicons).
-- Clickable source chips → deep-link to the actual Slack/Jira/Gmail item.
-- Loading/skeleton polish; empty states; mobile pass.
-- Landing/marketing page at `/` for logged-out visitors (currently `/` only redirects).
-- Consider a subtle attention badge in the switcher; alerts surfacing in the client view.
+**TODO / polish**
+- Push the empty state further toward the warm frosted **"Ask anything"** north-star
+  (centered card, suggestion rows with source favicons) if desired.
+- Clickable source chips → deep-link to the Slack/Jira/Gmail item.
+- Mobile pass; richer loading/empty states.
+- Logged-out landing/marketing page at `/`.
 
 ## 7. Run
 ```bash
-cd apps/web && npm install && npm run dev   # :3000  (backend must run on :8000)
+cd apps/web && npm install && npm run dev   # :3000  (backend on :8000)
 ```
 Login `ybharadwaj131@gmail.com` to see a client with Slack+Jira+Gmail data.

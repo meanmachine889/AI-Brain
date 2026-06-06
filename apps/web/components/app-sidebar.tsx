@@ -10,6 +10,7 @@ import {
   Check,
   PanelLeft,
   Settings2,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -21,8 +22,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import {
   api,
-  clearToken,
-  type Agency,
+  logout,
+  type Principal,
   type Client,
   type Dashboard,
   type DashboardClient,
@@ -91,7 +92,7 @@ export function AppSidebar() {
   const router = useRouter();
   const { setOpenMobile, toggleSidebar, state } = useSidebar();
 
-  const [agency, setAgency] = useState<Agency | null>(null);
+  const [me, setMe] = useState<Principal | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [scores, setScores] = useState<Record<string, DashboardClient>>({});
   const [loading, setLoading] = useState(true);
@@ -102,12 +103,12 @@ export function AppSidebar() {
 
   const load = useCallback(async () => {
     try {
-      const [me, list, dash] = await Promise.all([
-        api<Agency>("/auth/me"),
+      const [meRes, list, dash] = await Promise.all([
+        api<Principal>("/auth/me"),
         api<Client[]>("/clients"),
         api<Dashboard>("/dashboard").catch(() => null),
       ]);
-      setAgency(me);
+      setMe(meRes);
       setClients(list);
       if (dash) {
         const map: Record<string, DashboardClient> = {};
@@ -197,7 +198,7 @@ export function AppSidebar() {
                         {activeClient?.name ?? "Select client"}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {agency?.name ?? "Workspace"}
+                        {me?.agency.name ?? "Workspace"}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
@@ -312,6 +313,17 @@ export function AppSidebar() {
                     <span>Configuration</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {me?.is_owner && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      tooltip="Members"
+                      render={<Link href={`/clients/${activeClient.id}/members`} onClick={go} />}
+                    >
+                      <Users />
+                      <span>Members</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroup>
 
@@ -390,29 +402,37 @@ export function AppSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
-                  <SidebarMenuButton tooltip={agency?.email ?? "Account"}>
+                  <SidebarMenuButton tooltip={me?.email ?? "Account"}>
                     <span className="flex aspect-square size-5 items-center justify-center rounded-full bg-foreground text-[10px] font-semibold text-background">
-                      {initials(agency?.name ?? "?")}
+                      {initials(me?.name ?? me?.agency.name ?? "?")}
                     </span>
-                    <span className="truncate">{agency?.name ?? "Account"}</span>
+                    <span className="truncate">{me?.name ?? "Account"}</span>
                     <Settings2 className="ml-auto size-4 text-muted-foreground" />
                   </SidebarMenuButton>
                 }
               />
               <DropdownMenuContent align="end" side="top" className="w-56 rounded-xl">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel className="truncate text-xs text-muted-foreground">
-                    {agency?.email}
+                  <DropdownMenuLabel className="truncate text-xs">
+                    {me?.name}
+                    {me?.is_owner && (
+                      <span className="ml-1 font-normal text-muted-foreground">· owner</span>
+                    )}
+                  </DropdownMenuLabel>
+                  <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground">
+                    {me?.email}
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem render={<Link href="/integrations" onClick={go} />} className="gap-2">
-                  <Settings2 className="size-4" />
-                  Manage integrations
-                </DropdownMenuItem>
+                {me?.is_owner && (
+                  <DropdownMenuItem render={<Link href="/integrations" onClick={go} />} className="gap-2">
+                    <Settings2 className="size-4" />
+                    Manage integrations
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
-                  onClick={() => {
-                    clearToken();
+                  onClick={async () => {
+                    await logout();
                     router.push("/login");
                   }}
                   className="gap-2 text-destructive"

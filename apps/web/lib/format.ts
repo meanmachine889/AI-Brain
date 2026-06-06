@@ -1,6 +1,9 @@
 export function relativeTime(iso: string | null): string {
   if (!iso) return "no activity";
-  const then = new Date(iso).getTime();
+  // The API sends naive UTC timestamps (no 'Z'); browsers parse those as LOCAL
+  // time, skewing "x ago" by the viewer's offset. Treat tz-less strings as UTC.
+  const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(iso);
+  const then = new Date(hasTz ? iso : `${iso}Z`).getTime();
   const diff = Date.now() - then;
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";

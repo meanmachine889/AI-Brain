@@ -52,9 +52,6 @@ export default function ClientAlertsPage() {
     <AppShell title={client?.name ?? "Attention"}>
       <div className="canvas-warm h-full overflow-y-auto">
         <div className="mx-auto max-w-3xl px-5 pb-10 pt-10">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
-            {client?.name} · attention
-          </p>
           <h1 className="mb-6 text-xl font-semibold">Alerts</h1>
 
           {loading ? (

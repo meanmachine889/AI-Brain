@@ -27,14 +27,15 @@ export async function api<T = unknown>(
     },
   });
 
-  if (res.status === 401 || res.status === 403) {
-    // token missing/expired -> bounce to login
+  if (res.status === 401) {
+    // token missing/expired/revoked -> bounce to login
     if (typeof window !== "undefined") {
       clearToken();
       if (window.location.pathname !== "/login") window.location.href = "/login";
     }
     throw new Error("Not authenticated");
   }
+  // 403 = authenticated but not allowed (role). Surface it; do NOT log out.
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
@@ -45,8 +46,63 @@ export async function api<T = unknown>(
   return res.json() as Promise<T>;
 }
 
+// ---- log out: revoke the session server-side, then drop the local token ----
+export async function logout() {
+  try {
+    await api("/auth/logout", { method: "POST" });
+  } catch {
+    // even if the call fails, clear locally
+  }
+  clearToken();
+}
+
 // ---- shared types (mirror the FastAPI responses) ----
-export type Agency = { id: string; name: string; email: string; plan: string };
+export type Agency = { id: string; name: string; plan: string };
+
+export type Role = "admin" | "viewer";
+
+export type Membership = {
+  client_id: string;
+  client_name: string;
+  role: Role;
+};
+
+// GET /auth/me  (and the principal returned by /auth/google + onboarding)
+export type Principal = {
+  id: string;
+  email: string;
+  name: string;
+  tag: string | null;
+  is_owner: boolean;
+  agency: Agency;
+  memberships: Membership[];
+};
+
+// POST /auth/google response (union)
+export type InvitePreview = {
+  agency_name: string;
+  client_name: string;
+  role: Role;
+  tag: string | null;
+};
+
+export type GoogleAuthResponse =
+  | { status: "ok"; token: string; principal: Principal }
+  | {
+      status: "needs_onboarding";
+      identity: { email: string; name: string };
+      onboarding_token: string;
+      invites: InvitePreview[];
+    };
+
+// per-client member (GET /clients/{id}/members)
+export type ClientMemberRow = {
+  member_id: string;
+  name: string;
+  email: string;
+  tag: string | null;
+  role: Role;
+};
 
 export type Client = {
   id: string;

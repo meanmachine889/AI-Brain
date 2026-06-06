@@ -168,12 +168,6 @@ function ClientDetailView() {
               <>
                 {/* faded-but-readable status summary */}
                 <section id="summary" className="mb-5">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground/70">
-                    {client?.name} · current status
-                    {summary?.refreshing && (
-                      <span className="ml-2 normal-case text-link">· refreshing</span>
-                    )}
-                  </p>
                   <p className="text-[17px] leading-relaxed text-muted-foreground">
                     {summary?.summary ??
                       "No summary yet. Map a source and hit Sync to build this client's picture."}
@@ -181,6 +175,9 @@ function ClientDetailView() {
                   {summary?.generated_at && (
                     <p className="mt-2 text-xs text-muted-foreground/60">
                       Generated {relativeTime(summary.generated_at)} · {summary.chunk_count} items
+                      {summary?.refreshing && (
+                        <span className="ml-2 text-link">· refreshing</span>
+                      )}
                     </p>
                   )}
                 </section>

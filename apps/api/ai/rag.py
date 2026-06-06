@@ -7,13 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models import DataChunk
 from ai.embeddings import embed_text
 from ai.llm import answer
+from ai.ranking import POOL_LIMIT, select_indices
 from ai.timeframe import parse_timeframe
-
-# How many chunks to feed the model. Wider than the old top-5 so a single
-# keyword (e.g. "tasks", which scores hardest against Jira "Task N" chunks)
-# can't crowd out relevant Slack/email context, and so all of a client's
-# open tickets land in the answer rather than just the closest match.
-RETRIEVAL_LIMIT = 12
 
 # For time-scoped questions we return everything in the window (chronological),
 # not a semantic top-k — so "what did we discuss last week" is complete. Capped
@@ -101,21 +96,27 @@ async def ask(db: AsyncSession, client_id: str, client_name: str, question: str)
             f"(newest first) — answer only from this window."
         )
     else:
-        # 2b. vector similarity search, scoped to THIS client.
-        #     cosine_distance == pgvector's <=> operator, matches the HNSW
-        #     vector_cosine_ops index, so this is index-accelerated.
+        # 2b. Hybrid retrieval. Pull a bounded candidate pool from the vector
+        #     index (cosine_distance == pgvector's <=> operator, HNSW-accelerated),
+        #     then re-rank by similarity × recency with per-source caps so a
+        #     chatty source can't evict high-signal items (e.g. open tickets).
+        #     Cost stays flat as a client's history grows.
         q_vec = await embed_text(question)
-        rows = (
+        distance = DataChunk.embedding.cosine_distance(q_vec)
+        pool = (
             await db.execute(
-                select(DataChunk)
+                select(DataChunk, distance.label("distance"))
                 .where(DataChunk.client_id == client_id)
-                .order_by(DataChunk.embedding.cosine_distance(q_vec))
-                .limit(RETRIEVAL_LIMIT)
+                .order_by(distance)
+                .limit(POOL_LIMIT)
             )
-        ).scalars().all()
+        ).all()
 
-        if not rows:
+        if not pool:
             return {"answer": "No data available for this client yet.", "sources": []}
+
+        items = [(r[0].source, r[0].source_timestamp, r[1]) for r in pool]
+        rows = [pool[i][0] for i in select_indices(items, datetime.now())]
 
     # 3. build context (with the metadata the model needs), ask Gemini
     chunks = [_format_chunk(r) for r in rows]

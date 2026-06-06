@@ -150,6 +150,31 @@
 - [x] Tested live: blocked->brand pack, Friday->sign-off (both cited Slack), budget->"don't have that info" (no hallucination)
 - [x] BONUS: fixed dashboard N+1 -> 4 batched queries (GROUP BY + DISTINCT ON), removed dead helpers
 
+#### Ask-bar quality + retrieval pass (later session)
+- [x] **Context the model can actually use** (`ai/rag.py _format_chunk`): fold metadata
+      into each chunk — Jira status/assignee(or "unassigned")/due/priority, Gmail from/subject,
+      Slack channel/author — and tag every item with its timestamp `[source · YYYY-MM-DD HH:MM]`
+      (Jira shown as "updated …", its true semantics). Lets answers say "unassigned", "due Fri",
+      "on May 30".
+- [x] **Prompt** (`ai/prompts.py`): detailed-not-padded; Markdown allowed (rendered in UI);
+      tasks span ALL sources (Slack/email count, not just Jira); consistent two-part
+      blocker/"Also at risk" structure; injects today's date; generic examples (removed
+      hardcoded client data that could leak across clients).
+- [x] **Transient-error resilience** (`ai/llm.py`): `_generate` retries Gemini 503/429 with
+      backoff (was 500-ing the request -> UI "Something went wrong"); answer cap 600->900.
+- [x] **Time-window retrieval** (`ai/timeframe.py`, **tested** `tests/test_timeframe.py`, 25):
+      parse "last week / 2 weeks ago / in March / yesterday / between…" -> filter
+      `source_timestamp` chronologically (cap 50); empty window short-circuits
+      ("No activity during …"); `_DUE_RE` guard keeps due-date Qs on the semantic path.
+- [x] **Hybrid time-decay re-ranking** (`ai/ranking.py`, **tested** `tests/test_ranking.py`, 7):
+      replaces the flat semantic top-k that DROPPED tickets once a client had >k chunks
+      (the "missing data" bug). `score = 0.6·similarity + 0.4·recency_decay(τ=10d)` over a
+      bounded pool (60) from the vector index, with a **per-source cap (8)** so a chatty
+      source can't evict high-signal items; final 16. Cost stays flat as history grows.
+      Proven live: PrimeOne blocker Q went from 2 -> all 6 tickets in context.
+- [x] pytest added (dev dep + `[tool.pytest.ini_options]`); 32 tests green.
+- [x] Question bank for eval: `apps/api/pm-test-questions.md`.
+
 **Done when:** Natural language Q&A works over ingested client data
 
 ---
@@ -160,10 +185,16 @@
   - [x] client_blocked: latest summary mentions blocked/waiting/stuck
   - [x] ticket_stale: coded but DORMANT until Jira ingestion (Step 13)
 - [x] `_create_alert` dedupe: skip same unresolved type per client within 24h
+  - [x] now **per-ticket** for ticket-scoped alerts (matches on `ticket_key`), so multiple
+        stale/overdue tickets each get their own alert; also fixed a latent `scalar_one_or_none()`
+        crash when >1 matching alert already existed
 - [x] `GET /dashboard/alerts` (?resolved= &severity= filters), `PATCH /alerts/{id}/resolve`
 - [x] Registered workers.alerts in celery include
 - [x] Tested: both rules fire (backdated chunks for silent), dedupe, resolve, filters, cross-agency 404
 - Note: left Acme chunks backdated ~6 days from testing (harmless)
+- [x] **`deadline_approaching` rule** (later): Jira ticket due within 48h (or overdue) and not
+      Done -> alert (high if overdue, else medium); reads `due_date` from metadata. Beat (daily
+      8am) confirmed running -> check_all fires the rules end-to-end.
 
 **Done when:** Alerts generated and queryable via API
 
@@ -274,10 +305,24 @@ Backend: ✅ DONE (verified end-to-end, 13/13 flow checks + 25 unit tests pass)
       integrations owner-only) — migration `d4e5f6a7b8c9`
 - [x] 16.9 Verified: full Google→onboarding→invite→accept→RLS-isolation→role→logout flow
 
-Frontend:
+Frontend: 🚧 IN PROGRESS — paused, resume later
 - [ ] 16.10 Google Sign-In button + session handling (logout calls `/auth/logout`)
 - [ ] 16.11 Onboarding: "create your agency" vs "you've been invited to {Agency}" popup
 - [ ] 16.12 Members panel per client (list with role + tag, invite, change role, remove)
+
+> RESUME NOTES (frontend):
+> - Google JS origin `http://localhost:3000` is already added in the Google Cloud console.
+> - Reuse `GOOGLE_CLIENT_ID` on the web via `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (Google Identity Services).
+> - Backend endpoints to wire: POST `/auth/google` {id_token} -> {status:'ok'|'needs_onboarding', token?, principal?, onboarding_token?, invites?[]};
+>   POST `/auth/create-agency` {onboarding_token, agency_name, name}; GET `/auth/invite-preview?token=`;
+>   POST `/auth/accept-invite` {invite_token, onboarding_token?}; POST `/auth/logout`; GET `/auth/me` (new shape).
+> - `/auth/me` now returns {id,email,name,tag,is_owner,agency:{id,name,plan},memberships:[{client_id,client_name,role}]}.
+>   Update `lib/api.ts` Agency type + the sidebar account block (currently reads agency.email/name).
+> - Replace `app/login/page.tsx` (password) with Google sign-in; add `app/accept-invite/page.tsx`; add a per-client
+>   Members panel (owner-only) hitting `/clients/{id}/members` + `/clients/{id}/invites`.
+> - NOTE: current web login is password-based and is BROKEN against the new backend until this is done.
+> - Existing web frontend conventions: shadcn/ui + @base-ui/react, hugeicons + lucide, sonner toasts, `api()` chokepoint
+>   in lib/api.ts (Bearer from localStorage, 401/403 -> /login). Read AGENTS.md note before writing Next.js code.
 
 **Premium (future, documented):** multiple Slack/Jira workspaces — per-client
 integrations gated by `Agency.plan`. Forward-compatible: relax `Integration`
@@ -291,8 +336,8 @@ a client; member logs in, accepts, and sees only their client(s) with the right 
 
 ## Phase 2 — Push intelligence (Weeks 8–16)
 *Start after Phase 1 MVP is live with paying customers*
-- [ ] Alert when client goes silent beyond X days
-- [ ] Alert when deadline approaches with no ticket activity
+- [x] Alert when client goes silent beyond X days (`client_silent`, 5+ days — Step 12)
+- [x] Alert when deadline approaches (`deadline_approaching` — Jira due ≤48h/overdue & not Done — Step 12)
 - [ ] Weekly auto-draft of client status emails
 - [ ] Handoff brief generator when team members change
 
