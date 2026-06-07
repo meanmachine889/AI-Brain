@@ -5,12 +5,38 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* shadcn token aliases */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-link: #007aff;
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --color-link: var(--link);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-mono-code), ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, monospace;
+  --font-heading: var(--font-inter);
+
+  /* Linear named palette (DESIGN-5) — usable as bg-onyx, text-fog, text-acid-lime, … */
+  --color-onyx: #08090a;
+  --color-charcoal: #0f1011;
+  --color-obsidian: #161718;
+  --color-graphite: #23252a;
+  --color-iron: #323334;
+  --color-steel: #383b3f;
+  --color-slate: #62666d;
+  --color-fog: #8a8f98;
+  --color-mist: #d0d6e0;
+  --color-platinum: #e5e5e6;
+  --color-snow: #f7f8f8;
+  --color-acid-lime: #e4f222;
+  --color-indigo: #5e6ad2;
+  --color-emerald: #27a644;
+  --color-crimson: #eb5757;
+  --color-cyan: #02b8cc;
+
+  /* the single rationed CTA accent */
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -19,6 +45,8 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-rail: var(--rail);
+  --color-rail-foreground: var(--rail-foreground);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -49,79 +77,113 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Palette: DESIGN-4 "frosted glass workstation" (ChatGPT-style).
-   Carbon text on Snow, Fog panels, Pewter secondary, Link Blue the only accent. */
-/* Warm "frosted workstation" palette (Dia-style): cream canvas, white floating
-   cards, warm near-black text, soft layered shadows. */
+/* ============================================================================
+   LIGHT (derived from DESIGN-5) — cool, near-white instrument panel.
+   Light is the secondary theme; dark is the star. Kept coherent with the dark
+   palette (same grays, indigo link, rationed lime CTA) rather than a warm cream.
+   ============================================================================ */
 :root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --background: #ffffff;            /* card / surface */
-  --foreground: #1d1c1a;            /* near-neutral carbon */
-  --card: #ffffff;
-  --card-foreground: #1d1c1a;
-  --popover: #ffffff;
-  --popover-foreground: #1d1c1a;
-  --primary: #1d1c1a;
-  --primary-foreground: #fafafa;
-  --secondary: #f4f3f1;
-  --secondary-foreground: #1d1c1a;
-  --muted: #f6f5f3;               /* barely-warm fog */
-  --muted-foreground: #6a6862;     /* neutral pewter */
-  --accent: #efeeea;              /* subtle hover */
-  --accent-foreground: #1d1c1a;
-  --destructive: #d2483f;
-  --border: rgba(40, 36, 28, 0.08);
-  --input: rgba(40, 36, 28, 0.11);
-  --ring: #007aff;
-  --chart-1: #1d1c1a;
-  --chart-2: #6a6862;
-  --chart-3: #97938b;
-  --chart-4: #c0bcb3;
-  --chart-5: #e1ddd5;
   --radius: 0.625rem;
-  --sidebar: #f6f5f2;             /* subtle warm-neutral sidebar */
-  --sidebar-foreground: #1d1c1a;
-  --sidebar-primary: #1d1c1a;
-  --sidebar-primary-foreground: #fafafa;
-  --sidebar-accent: #ecebe6;
-  --sidebar-accent-foreground: #1d1c1a;
-  --sidebar-border: rgba(40, 36, 28, 0.07);
-  --sidebar-ring: #007aff;
+
+  --background: #ffffff; /* main content well (lightest) */
+  --foreground: #08090a; /* onyx text */
+  --card: #f5f6f7; /* lifts off white without a border */
+  --card-foreground: #08090a;
+  --popover: #ffffff;
+  --popover-foreground: #08090a;
+
+  --primary: #16181c; /* near-onyx neutral primary */
+  --primary-foreground: #f7f8f8;
+  --secondary: #eef0f1;
+  --secondary-foreground: #16181c;
+  --muted: #eef0f1;
+  --muted-foreground: #62666d; /* slate */
+  --accent: #e9ebed; /* hover surface */
+  --accent-foreground: #16181c;
+  --destructive: #d6443c;
+
+  /* the rationed lime CTA — dark text on lime for AAA contrast */
+  --cta: #d3e017; /* slightly deepened so it reads on white */
+  --cta-foreground: #08090a;
+
+  --border: rgba(8, 9, 10, 0.06);
+  --input: rgba(8, 9, 10, 0.1);
+  --ring: #5e6ad2; /* indigo focus */
+  --link: #5e6ad2;
+
+  --chart-1: #16181c;
+  --chart-2: #62666d;
+  --chart-3: #8a8f98;
+  --chart-4: #c2c6cc;
+  --chart-5: #e1e4e7;
+
+  --sidebar: #eef0f1;
+  --sidebar-foreground: #16181c;
+  --sidebar-primary: #16181c;
+  --sidebar-primary-foreground: #f7f8f8;
+  --sidebar-accent: #e3e6e8;
+  --sidebar-accent-foreground: #16181c;
+  --sidebar-border: rgba(8, 9, 10, 0.08);
+  --sidebar-ring: #5e6ad2;
+
+  --rail: #16181c; /* the slim rail stays dark in both themes (Slack-style) */
+  --rail-foreground: #d0d6e0;
+
+  /* depth: cool shadow + hairline color, theme-tuned */
+  --shadow-color: 16 18 22;
+  --hairline: rgba(8, 9, 10, 0.08);
 }
 
+/* ============================================================================
+   DARK (DESIGN-5 "midnight command deck") — the primary theme.
+   ============================================================================ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: #007aff;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #08090a; /* onyx — main content well (darkest) */
+  --foreground: #f7f8f8; /* snow */
+  --card: #141618; /* lifts off the onyx well without a border */
+  --card-foreground: #f7f8f8;
+  --popover: #161718; /* obsidian */
+  --popover-foreground: #f7f8f8;
+
+  --primary: #f7f8f8; /* neutral primary (snow), NOT lime */
+  --primary-foreground: #08090a;
+  --secondary: #161718;
+  --secondary-foreground: #f7f8f8;
+  --muted: #17191c; /* filled fields / chips */
+  --muted-foreground: #8a8f98; /* fog */
+  --accent: #1f2225; /* hover surface, a touch above card */
+  --accent-foreground: #f7f8f8;
+  --destructive: #eb5757; /* crimson */
+
+  /* the one chromatic fill in the system */
+  --cta: #e4f222; /* acid lime */
+  --cta-foreground: #08090a;
+
+  --border: #1d1f23; /* low-key hairline, used sparingly */
+  --input: #24272b; /* subtle field border */
+  --ring: #5e6ad2; /* indigo focus */
+  --link: #8b95e8; /* indigo, lifted for dark contrast */
+
+  --chart-1: #e5e5e6;
+  --chart-2: #8a8f98;
+  --chart-3: #62666d;
+  --chart-4: #383b3f;
+  --chart-5: #23252a;
+
+  --sidebar: #15171a; /* panel — a touch lighter than the onyx wells */
+  --sidebar-foreground: #d0d6e0; /* mist */
+  --sidebar-primary: #f7f8f8;
+  --sidebar-primary-foreground: #08090a;
+  --sidebar-accent: #222529;
+  --sidebar-accent-foreground: #f7f8f8;
+  --sidebar-border: #23252a;
+  --sidebar-ring: #5e6ad2;
+
+  --rail: #08090a; /* deepest surface for the rail */
+  --rail-foreground: #8a8f98;
+
+  --shadow-color: 0 0 0;
+  --hairline: rgba(255, 255, 255, 0.06);
 }
 
 @layer base {
@@ -130,47 +192,125 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "liga" 0;
+    font-feature-settings: "cv01" on, "ss03" on; /* Inter — DESIGN-5 voice */
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;
   }
+  /* tighten display/heading tracking the Linear way */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.012em;
+  }
 }
 
-/* Soft, warm, layered depth (Dia-style). Raised surfaces float off the cream. */
+/* ============================================================================
+   DEPTH SYSTEM — theme-aware. Existing pages already use .shadow-soft /
+   .shadow-raised / .shadow-float / .ring-hairline / .canvas-warm / .glow-warm,
+   so these names are preserved but redefined to adapt to both themes.
+   Linear builds elevation from inset hairline borders + soft drop shadows,
+   never from fills.
+   ============================================================================ */
 @layer utilities {
   .shadow-soft {
     box-shadow:
-      0 1px 1px rgba(60, 45, 20, 0.04),
-      0 2px 6px -1px rgba(60, 45, 20, 0.07);
+      0 1px 2px rgb(var(--shadow-color) / 0.16),
+      0 1px 1px rgb(var(--shadow-color) / 0.08);
   }
   .shadow-raised {
     box-shadow:
-      0 1px 2px rgba(60, 45, 20, 0.05),
-      0 4px 10px -2px rgba(60, 45, 20, 0.08);
+      0 2px 6px rgb(var(--shadow-color) / 0.24),
+      0 1px 2px rgb(var(--shadow-color) / 0.12);
   }
   .shadow-float {
     box-shadow:
-      0 1px 2px rgba(60, 45, 20, 0.05),
-      0 18px 48px -12px rgba(80, 55, 20, 0.22);
+      0 4px 28px rgb(var(--shadow-color) / 0.45),
+      0 2px 8px rgb(var(--shadow-color) / 0.24);
   }
   .ring-hairline {
-    box-shadow: inset 0 0 0 1px rgba(60, 45, 20, 0.07);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  /* the 4-layer Linear button depth stack */
+  .shadow-depth {
+    box-shadow:
+      0 3px 2px rgb(var(--shadow-color) / 0.05),
+      0 1px 1px rgb(var(--shadow-color) / 0.09),
+      0 0 1px rgb(var(--shadow-color) / 0.1);
   }
 
-  /* Subtle warm-neutral canvas for the main work area. Just a hint of warmth,
-     not amber — keeps the framed window calm. */
+  /* Flat surfaces only — no gradients. Transparent so the main window's matte
+     shows through (the inset <main> provides the background color). */
   .canvas-warm {
-    background:
-      radial-gradient(120% 80% at 50% 12%, #ffffff 0%, #fbfaf8 55%, #f6f4f0 100%);
+    background: transparent;
   }
-  /* Very faint glow behind the ask card (neutral, barely-there). */
   .glow-warm {
-    background: radial-gradient(
-      60% 60% at 50% 50%,
-      rgba(120, 110, 90, 0.10) 0%,
-      rgba(120, 110, 90, 0) 70%
-    );
+    background: transparent;
+  }
+
+  /* Matte finish: a faint, fixed grain layered over the surface's own color
+     (sits above background-color, below all child content). No gradient. */
+  .matte {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  /* The single rationed CTA — flat lime fill, dark ink, subtle depth. */
+  .cta-lime {
+    background: var(--cta);
+    color: var(--cta-foreground);
+  }
+  .cta-lime:hover {
+    filter: brightness(1.06);
+  }
+
+  /* Mono surface chip for IDs / code (Berkeley Mono substitute). */
+  .mono {
+    font-family: var(--font-mono);
+    letter-spacing: -0.015em;
+    font-feature-settings: normal;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
+
+/* ============================================================================
+   THEME TOGGLE — smooth, not laggy. We disable global per-element transitions
+   (next-themes disableTransitionOnChange) to avoid hundreds of elements
+   animating at once, and instead crossfade the whole page in one GPU-composited
+   View Transition. Browsers without the API just swap instantly.
+   ============================================================================ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.28s;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  animation: vt-fade-out 0.28s ease both;
+}
+::view-transition-new(root) {
+  animation: vt-fade-in 0.28s ease both;
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
   }
 }
