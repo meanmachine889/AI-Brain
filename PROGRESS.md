@@ -265,9 +265,19 @@
 ## Current step
 > Update this line as you move through the build.
 
-**Working on:** Step 16 — Multi-user (Google auth + per-client members).
+**Working on:** Step 16 — Multi-user (Google auth + per-client members) is DONE
+end-to-end (backend + frontend). Next up: Step 13c — Google Drive integration.
 Security hardening (token encryption, erasure/cascade, Postgres RLS) is DONE and on
 `main` — see [SECURITY.md](SECURITY.md) for findings/progress/roadmap.
+
+**Privacy pass (2026-06-11) — DONE:** short-lived access tokens (60m) + refresh flow
+(`/auth/refresh`); audit logging of client-data reads → owner-only **Activity page**
+(`audit_logs` table, migration `f525f5929eea`, `core/audit.py`, `routers/activity.py`,
+`/clients/[id]/activity`); prompt-injection hardening (fenced untrusted content +
+`_sanitize_chunk` in `ai/llm.py`); OAuth callbacks use `FRONTEND_URL`. Email-body
+data-minimization intentionally NOT done (full bodies kept for RAG quality). See
+[SECURITY.md](SECURITY.md) §3 + the updated prod checklist (Gemini paid-tier, DPA,
+rate-limiting, HSTS).
 
 ---
 
@@ -305,24 +315,18 @@ Backend: ✅ DONE (verified end-to-end, 13/13 flow checks + 25 unit tests pass)
       integrations owner-only) — migration `d4e5f6a7b8c9`
 - [x] 16.9 Verified: full Google→onboarding→invite→accept→RLS-isolation→role→logout flow
 
-Frontend: 🚧 IN PROGRESS — paused, resume later
-- [ ] 16.10 Google Sign-In button + session handling (logout calls `/auth/logout`)
-- [ ] 16.11 Onboarding: "create your agency" vs "you've been invited to {Agency}" popup
-- [ ] 16.12 Members panel per client (list with role + tag, invite, change role, remove)
-
-> RESUME NOTES (frontend):
-> - Google JS origin `http://localhost:3000` is already added in the Google Cloud console.
-> - Reuse `GOOGLE_CLIENT_ID` on the web via `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (Google Identity Services).
-> - Backend endpoints to wire: POST `/auth/google` {id_token} -> {status:'ok'|'needs_onboarding', token?, principal?, onboarding_token?, invites?[]};
->   POST `/auth/create-agency` {onboarding_token, agency_name, name}; GET `/auth/invite-preview?token=`;
->   POST `/auth/accept-invite` {invite_token, onboarding_token?}; POST `/auth/logout`; GET `/auth/me` (new shape).
-> - `/auth/me` now returns {id,email,name,tag,is_owner,agency:{id,name,plan},memberships:[{client_id,client_name,role}]}.
->   Update `lib/api.ts` Agency type + the sidebar account block (currently reads agency.email/name).
-> - Replace `app/login/page.tsx` (password) with Google sign-in; add `app/accept-invite/page.tsx`; add a per-client
->   Members panel (owner-only) hitting `/clients/{id}/members` + `/clients/{id}/invites`.
-> - NOTE: current web login is password-based and is BROKEN against the new backend until this is done.
-> - Existing web frontend conventions: shadcn/ui + @base-ui/react, hugeicons + lucide, sonner toasts, `api()` chokepoint
->   in lib/api.ts (Bearer from localStorage, 401/403 -> /login). Read AGENTS.md note before writing Next.js code.
+Frontend: ✅ DONE
+- [x] 16.10 Google Sign-In (`components/google-signin.tsx`, Google Identity Services) replaces
+      password login; `lib/api.ts` `logout()` POSTs `/auth/logout` then clears the token; the
+      account block reads the `Principal` from `/auth/me`.
+- [x] 16.11 Onboarding: new users get an inline "create your agency" step on `/login` (surfaces any
+      pending invites); `/accept-invite?token=` previews agency/client/role then accepts via Google.
+- [x] 16.12 Owner-only Members panel per client (`/clients/[id]/members`): list with role + tag,
+      invite (copies link), change role, remove, revoke pending invites. Sidebar "Members" entry +
+      "Manage integrations" are gated on `is_owner`; 403s are surfaced (not logged out).
+- See [apps/web/FRONTEND.md](apps/web/FRONTEND.md) for the full current frontend map.
+- Needs `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (reuse backend `GOOGLE_CLIENT_ID`; JS origin
+  `http://localhost:3000` already authorized in the Google Cloud console).
 
 **Premium (future, documented):** multiple Slack/Jira workspaces — per-client
 integrations gated by `Agency.plan`. Forward-compatible: relax `Integration`

@@ -122,7 +122,7 @@ async def slack_callback(code: str, state: str, db: AsyncSession = Depends(get_d
     from workers.ingestion.slack import ingest_for_agency
     ingest_for_agency.delay(agency_id)
 
-    return RedirectResponse(url="http://localhost:3000/integrations?connected=slack")
+    return RedirectResponse(url=f"{settings.frontend_url}/integrations?connected=slack")
 
 
 @router.post("/slack/sync")
@@ -214,7 +214,7 @@ async def jira_callback(code: str, state: str, db: AsyncSession = Depends(get_db
     from workers.ingestion.jira import ingest_for_agency
     ingest_for_agency.delay(agency_id)
 
-    return RedirectResponse(url="http://localhost:3000/integrations?connected=jira")
+    return RedirectResponse(url=f"{settings.frontend_url}/integrations?connected=jira")
 
 
 # ---- Gmail OAuth (Google) ----
@@ -293,7 +293,7 @@ async def google_callback(code: str, state: str, db: AsyncSession = Depends(get_
     from workers.ingestion.gmail import ingest_for_agency
     ingest_for_agency.delay(agency_id)
 
-    return RedirectResponse(url="http://localhost:3000/integrations?connected=gmail")
+    return RedirectResponse(url=f"{settings.frontend_url}/integrations?connected=gmail")
 
 
 # ---- generic sync: fan out to whatever this agency has connected ----

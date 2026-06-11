@@ -1,21 +1,60 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // ---- token storage (localStorage) ----
+// Access token is short-lived (~60min); the refresh token (~7d) silently mints a
+// new access token when one expires, so the user logs in once but a leaked access
+// token is only useful for minutes. Both are revoked server-side on logout.
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");
 }
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("refresh_token");
+}
 export function setToken(t: string) {
   localStorage.setItem("token", t);
 }
+// Store the access + refresh pair returned by login / refresh.
+export function setSession(token: string, refreshToken?: string) {
+  localStorage.setItem("token", token);
+  if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+}
 export function clearToken() {
   localStorage.removeItem("token");
+  localStorage.removeItem("refresh_token");
+}
+
+// ---- silent access-token refresh (deduped so concurrent 401s share one call) ----
+let refreshing: Promise<string | null> | null = null;
+async function refreshAccessToken(): Promise<string | null> {
+  const rt = getRefreshToken();
+  if (!rt) return null;
+  if (!refreshing) {
+    refreshing = fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: rt }),
+    })
+      .then(async (r) => {
+        if (!r.ok) return null;
+        const data = (await r.json()) as { token: string; refresh_token?: string };
+        setSession(data.token, data.refresh_token);
+        return data.token;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshing = null;
+      });
+  }
+  return refreshing;
 }
 
 // ---- single fetch chokepoint: attaches Bearer, throws on non-2xx ----
 export async function api<T = unknown>(
   path: string,
-  opts: RequestInit = {}
+  opts: RequestInit = {},
+  _retried = false
 ): Promise<T> {
   const token = getToken();
   const res = await fetch(`${API_URL}${path}`, {
@@ -28,7 +67,13 @@ export async function api<T = unknown>(
   });
 
   if (res.status === 401) {
-    // token missing/expired/revoked -> bounce to login
+    // access token expired? try a one-shot silent refresh before giving up.
+    // Don't try to refresh the refresh call itself.
+    if (!_retried && path !== "/auth/refresh") {
+      const fresh = await refreshAccessToken();
+      if (fresh) return api<T>(path, opts, true);
+    }
+    // missing/expired/revoked and refresh failed -> bounce to login
     if (typeof window !== "undefined") {
       clearToken();
       if (window.location.pathname !== "/login") window.location.href = "/login";
@@ -87,7 +132,7 @@ export type InvitePreview = {
 };
 
 export type GoogleAuthResponse =
-  | { status: "ok"; token: string; principal: Principal }
+  | { status: "ok"; token: string; refresh_token: string; principal: Principal }
   | {
       status: "needs_onboarding";
       identity: { email: string; name: string };
@@ -166,4 +211,21 @@ export type Integration = {
   workspace_name: string | null;
   connected_at: string;
   scopes: string[];
+};
+
+// GET /activity (owner-only) — append-only access trail
+export type AuditAction =
+  | "view_client"
+  | "ask_client"
+  | "view_dashboard";
+
+export type AuditEntry = {
+  id: string;
+  actor_member_id: string | null;
+  actor_email: string;
+  action: AuditAction;
+  client_id: string | null;
+  client_name: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
 };

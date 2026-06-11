@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeftClose, Users } from "lucide-react";
+import { PanelLeftClose, Users, ScrollText } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Home03Icon,
@@ -163,6 +163,15 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     active={pathname === `${base}/members`}
                     icon={<Users />}
                     label="Members"
+                  />
+                )}
+                {me?.is_owner && (
+                  <NavItem
+                    href={`${base}/activity`}
+                    onClick={onNavigate}
+                    active={pathname === `${base}/activity`}
+                    icon={<ScrollText />}
+                    label="Activity"
                   />
                 )}
               </div>

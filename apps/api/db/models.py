@@ -158,6 +158,30 @@ class ClientMember(Base):
     )
 
 
+class AuditLog(Base):
+    """Append-only record of who accessed which client's (third-party) data.
+
+    This product holds other people's private inboxes/chats, so every read of a
+    client's data is logged: actor, action, client, time. Actor email + client name
+    are DENORMALIZED so the trail survives the member or client being deleted (an
+    audit log you can erase by deleting the actor isn't an audit log). Written
+    best-effort on the owner role (see workers/audit.py) so it can't be scoped away
+    by RLS or rolled back with the request.
+    """
+    __tablename__ = "audit_logs"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    agency_id: Mapped[str] = mapped_column(
+        ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    actor_member_id: Mapped[str | None] = mapped_column(String, index=True)  # not FK: survive deletion
+    actor_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    action: Mapped[str] = mapped_column(String(50), nullable=False)  # view_client | ask_client | view_summary | view_dashboard
+    client_id: Mapped[str | None] = mapped_column(String, index=True)
+    client_name: Mapped[str | None] = mapped_column(String(255))
+    metadata_: Mapped[dict] = mapped_column("metadata", JSON, default=dict)  # e.g. {"question": "..."}
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
 class ClientInvite(Base):
     """A per-client invite link (owner-created). Only the token hash is stored."""
     __tablename__ = "client_invites"

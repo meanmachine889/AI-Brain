@@ -1,4 +1,5 @@
 import asyncio
+import re
 from datetime import datetime
 
 from google import genai
@@ -9,6 +10,20 @@ from core.config import settings
 from ai.prompts import SUMMARIZE_CLIENT_PROMPT, ASK_CLIENT_PROMPT
 
 client = genai.Client(api_key=settings.google_api_key)
+
+# Neutralize delimiter-injection: ingested content must not be able to forge the
+# <context>/<activity> fences that separate untrusted data from our instructions.
+# We defang the tag (insert a zero-width-ish marker) rather than drop text, so the
+# message still reads naturally to the model but can't break out of the fence.
+_FENCE_RE = re.compile(r"</?\s*(context|activity)\s*>", re.IGNORECASE)
+
+
+def _sanitize_chunk(text: str) -> str:
+    return _FENCE_RE.sub(lambda m: m.group(0).replace("<", "‹").replace(">", "›"), text)
+
+
+def _join_chunks(chunks: list[str]) -> str:
+    return "\n---\n".join(_sanitize_chunk(c) for c in chunks)
 
 # thinking_budget=0 disables Gemini 2.5 Flash's "thinking" so the token budget
 # goes to the actual answer (faster, cheaper, and avoids empty replies on short
@@ -49,7 +64,7 @@ async def _generate(prompt: str, *, max_output_tokens: int, temperature: float) 
 async def summarize(client_name: str, chunks: list[str]) -> str:
     prompt = SUMMARIZE_CLIENT_PROMPT.format(
         client_name=client_name,
-        chunks="\n---\n".join(chunks),
+        chunks=_join_chunks(chunks),
     )
     return await _generate(prompt, max_output_tokens=500, temperature=0.3)
 
@@ -64,7 +79,7 @@ async def answer(
         today=datetime.now().strftime("%A, %Y-%m-%d"),
         client_name=client_name,
         question=question,
-        chunks="\n---\n".join(chunks),
+        chunks=_join_chunks(chunks),
         timeframe_note=f"\n{timeframe_note}\n" if timeframe_note else "",
     )
     return await _generate(prompt, max_output_tokens=900, temperature=0.2)

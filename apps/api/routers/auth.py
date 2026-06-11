@@ -11,6 +11,8 @@ from core.config import settings
 from core.security import (
     verify_google_id_token,
     create_session_token,
+    create_refresh_token,
+    member_from_refresh_token,
     create_onboarding_token,
     read_onboarding_token,
     hash_invite_token,
@@ -37,6 +39,10 @@ class CreateAgencyRequest(BaseModel):
 class AcceptInviteRequest(BaseModel):
     invite_token: str
     onboarding_token: str | None = None  # for brand-new users (no session yet)
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 def _me(member: Member, agency: Agency, memberships: list[dict]) -> dict:
@@ -66,7 +72,11 @@ async def _session_response(db: AsyncSession, member: Member) -> dict:
         {"client_id": cm.client_id, "client_name": cname, "role": cm.role}
         for cm, cname in rows
     ]
-    return {"token": create_session_token(member), "principal": _me(member, agency, memberships)}
+    return {
+        "token": create_session_token(member),
+        "refresh_token": create_refresh_token(member),
+        "principal": _me(member, agency, memberships),
+    }
 
 
 # ---- Google sign-in: resolve the identity ----
@@ -280,6 +290,18 @@ async def logout(
     member.token_version += 1
     await db.commit()
     return {"logged_out": True}
+
+
+@router.post("/refresh")
+async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_owner_db)):
+    """Exchange a valid refresh token for a fresh short-lived access token (and a
+    rotated refresh token). Returns 401 if the refresh token was revoked (logout
+    bumped token_version) or expired."""
+    member = await member_from_refresh_token(body.refresh_token, db)
+    return {
+        "token": create_session_token(member),
+        "refresh_token": create_refresh_token(member),
+    }
 
 
 @router.get("/me")

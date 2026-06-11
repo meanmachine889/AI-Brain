@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   api,
-  setToken,
+  setSession,
   type GoogleAuthResponse,
   type Principal,
 } from "@/lib/api";
@@ -59,15 +59,16 @@ function AcceptInviteView() {
           invite_token: token,
         };
         if (auth.status === "ok") {
-          setToken(auth.token);
+          // establish a session so the accept call is authenticated
+          setSession(auth.token, auth.refresh_token);
         } else {
           body.onboarding_token = auth.onboarding_token;
         }
-        const res = await api<{ token: string; principal: Principal }>(
+        const res = await api<{ token: string; refresh_token: string; principal: Principal }>(
           "/auth/accept-invite",
           { method: "POST", body: JSON.stringify(body) }
         );
-        setToken(res.token);
+        setSession(res.token, res.refresh_token);
         const first = res.principal.memberships[0];
         router.push(first ? `/clients/${first.client_id}` : "/");
       } catch (err) {

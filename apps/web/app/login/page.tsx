@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, setToken, type GoogleAuthResponse, type InvitePreview } from "@/lib/api";
+import { api, setSession, type GoogleAuthResponse, type InvitePreview } from "@/lib/api";
 import { GoogleSignInButton } from "@/components/google-signin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ export default function LoginPage() {
           body: JSON.stringify({ id_token: idToken }),
         });
         if (res.status === "ok") {
-          setToken(res.token);
+          setSession(res.token, res.refresh_token);
           router.push("/");
           return;
         }
@@ -63,7 +63,7 @@ export default function LoginPage() {
     setBusy(true);
     setError("");
     try {
-      const res = await api<{ token: string }>("/auth/create-agency", {
+      const res = await api<{ token: string; refresh_token: string }>("/auth/create-agency", {
         method: "POST",
         body: JSON.stringify({
           onboarding_token: onboarding.onboarding_token,
@@ -71,7 +71,7 @@ export default function LoginPage() {
           name: onboarding.identity.name,
         }),
       });
-      setToken(res.token);
+      setSession(res.token, res.refresh_token);
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create agency");

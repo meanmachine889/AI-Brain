@@ -16,7 +16,12 @@ from db.models import Agency, Member
 
 bearer = HTTPBearer()
 
-ACCESS_TOKEN_EXPIRE_DAYS = 7
+# Short-lived access token: a stolen Bearer is only useful for minutes, not a week.
+# Pair it with a longer-lived refresh token (POST /auth/refresh) so the UX stays
+# "log in once". Both carry `tv` (token_version) so logout/removal revokes BOTH
+# instantly — bumping the member's token_version invalidates every outstanding token.
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 ONBOARDING_TOKEN_EXPIRE_MINUTES = 20
 
 
@@ -41,13 +46,28 @@ def verify_google_id_token(token: str) -> dict:
     }
 
 
-# ---- our session token (Google is the IdP; we own the session for revocation) ----
+# ---- our session tokens (Google is the IdP; we own the session for revocation) ----
 def create_session_token(member: Member) -> str:
+    """Short-lived access token (typ=access). Sent as the Bearer on every request."""
     payload = {
         "sub": member.id,
         "agency_id": member.agency_id,
         "tv": member.token_version,  # bumped on logout/removal -> instant revocation
-        "exp": datetime.now(timezone.utc) + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS),
+        "typ": "access",
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+
+def create_refresh_token(member: Member) -> str:
+    """Long-lived refresh token (typ=refresh). Only accepted at POST /auth/refresh,
+    where it mints a fresh access token. Also tied to token_version, so logout kills
+    it too."""
+    payload = {
+        "sub": member.id,
+        "tv": member.token_version,
+        "typ": "refresh",
+        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
@@ -103,6 +123,10 @@ async def get_current_member(
         token_version = payload.get("tv")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    # a refresh token must never authorize a normal request — it's only valid at
+    # /auth/refresh. (Legacy access tokens predate `typ`, so absence is allowed.)
+    if payload.get("typ") == "refresh":
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     member = (
         await db.execute(select(Member).where(Member.id == member_id))
@@ -135,4 +159,21 @@ async def get_current_agency(
 def require_owner(member: Member = Depends(get_current_member)) -> Member:
     if not member.is_owner:
         raise HTTPException(status_code=403, detail="Owner only")
+    return member
+
+
+async def member_from_refresh_token(token: str, db: AsyncSession) -> Member:
+    """Validate a refresh token (typ=refresh + token_version) and load its Member.
+    Used by POST /auth/refresh to mint a new access token. Raises 401."""
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    if payload.get("typ") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    member = (
+        await db.execute(select(Member).where(Member.id == payload.get("sub")))
+    ).scalar_one_or_none()
+    if not member or payload.get("tv") != member.token_version:
+        raise HTTPException(status_code=401, detail="Refresh token expired, sign in again")
     return member

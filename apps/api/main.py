@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import settings
-from routers import auth, clients, integrations, members, summaries
+from routers import activity, auth, clients, integrations, members, summaries
 
 app = FastAPI(title="Agency AI Brain", version="0.1.0")
 
@@ -21,6 +21,7 @@ app.include_router(clients.router, prefix="/clients", tags=["clients"])
 app.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 app.include_router(members.router, tags=["members"])
 app.include_router(summaries.router, tags=["summaries"])
+app.include_router(activity.router, tags=["activity"])
 
 
 @app.get("/health")

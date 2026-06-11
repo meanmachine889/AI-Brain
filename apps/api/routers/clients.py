@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.session import get_db
 from db.models import Client, Agency, Member, ClientMember
 from core.security import get_current_agency, get_current_member, require_owner
+from core import audit
 
 router = APIRouter()
 
@@ -97,10 +98,14 @@ async def create_client(
 @router.get("/{client_id}", response_model=ClientOut)
 async def get_client(
     client_id: str,
-    agency: Agency = Depends(get_current_agency),
+    member: Member = Depends(get_current_member),
     db: AsyncSession = Depends(get_db),
 ):
-    return await _get_client(client_id, agency.id, db)
+    client = await _get_client(client_id, member.agency_id, db)
+    await audit.record(
+        member, audit.VIEW_CLIENT, client_id=client.id, client_name=client.name
+    )
+    return client
 
 
 @router.patch("/{client_id}", response_model=ClientOut)

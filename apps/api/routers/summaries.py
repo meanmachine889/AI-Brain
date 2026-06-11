@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.security import get_current_agency
+from core.security import get_current_agency, get_current_member
+from core import audit
 from db.session import get_db
-from db.models import Agency, Client, Summary, DataChunk, Alert
+from db.models import Agency, Client, Summary, DataChunk, Alert, Member
 from pydantic import BaseModel
 from ai.rag import ask as rag_ask
 
@@ -51,28 +52,33 @@ def _attention_score(summary, last_activity, alert_count, now) -> int:
 async def ask_client(
     client_id: str,
     body: AskRequest,
-    agency: Agency = Depends(get_current_agency),
+    member: Member = Depends(get_current_member),
     db: AsyncSession = Depends(get_db),
 ):
     client = (
         await db.execute(
-            select(Client).where(Client.id == client_id, Client.agency_id == agency.id)
+            select(Client).where(Client.id == client_id, Client.agency_id == member.agency_id)
         )
     ).scalar_one_or_none()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
+    await audit.record(
+        member, audit.ASK_CLIENT,
+        client_id=client.id, client_name=client.name,
+        metadata={"question": body.question[:500]},
+    )
     return await rag_ask(db, client_id, client.name, body.question)
 
 
 @router.get("/clients/{client_id}/summary")
 async def get_summary(
     client_id: str,
-    agency: Agency = Depends(get_current_agency),
+    member: Member = Depends(get_current_member),
     db: AsyncSession = Depends(get_db),
 ):
     client = (
         await db.execute(
-            select(Client).where(Client.id == client_id, Client.agency_id == agency.id)
+            select(Client).where(Client.id == client_id, Client.agency_id == member.agency_id)
         )
     ).scalar_one_or_none()
     if not client:
@@ -100,14 +106,15 @@ async def get_summary(
 
 @router.get("/dashboard")
 async def dashboard(
-    agency: Agency = Depends(get_current_agency),
+    member: Member = Depends(get_current_member),
     db: AsyncSession = Depends(get_db),
 ):
     now = datetime.utcnow()
+    await audit.record(member, audit.VIEW_DASHBOARD)
 
     # Query 1: this agency's clients
     clients = (
-        await db.execute(select(Client).where(Client.agency_id == agency.id))
+        await db.execute(select(Client).where(Client.agency_id == member.agency_id))
     ).scalars().all()
     if not clients:
         return {"clients": [], "total_alerts": 0}
