@@ -4,6 +4,7 @@ from sqlalchemy import select, desc
 
 from db.session import async_session
 from db.models import Client, DataChunk, Summary
+from ai.context import format_chunk
 from ai.llm import summarize
 from workers.celery_app import celery_app
 
@@ -33,10 +34,9 @@ async def _summarize_async(client_id: str):
             print(f"[summarizer] no chunks for client={client.name}, skipping")
             return
 
-        formatted = [
-            f"[{c.source} | {c.source_timestamp.strftime('%Y-%m-%d %H:%M')}] {c.content}"
-            for c in chunks
-        ]
+        # Same rich rendering the ask path uses: weekday + timestamp + metadata,
+        # so the model can resolve relative dates and see ticket state.
+        formatted = [format_chunk(c) for c in chunks]
         summary_text = await summarize(client.name, formatted)
 
         db.add(Summary(client_id=client_id, content=summary_text, chunk_count=len(chunks)))

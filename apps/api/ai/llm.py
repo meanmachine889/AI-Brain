@@ -25,11 +25,13 @@ def _sanitize_chunk(text: str) -> str:
 def _join_chunks(chunks: list[str]) -> str:
     return "\n---\n".join(_sanitize_chunk(c) for c in chunks)
 
-# thinking_budget=0 disables Gemini 2.5 Flash's "thinking" so the token budget
-# goes to the actual answer (faster, cheaper, and avoids empty replies on short
-# max_output_tokens). NOTE: if you switch chat_model to gemini-2.5-pro, remove
-# this (pro requires a thinking budget) or set it to -1 for dynamic thinking.
-_THINKING_OFF = types.ThinkingConfig(thinking_budget=0)
+# A small thinking budget buys back the reasoning that temporal grounding
+# needs (resolving "next Friday" against a message's date, spotting passed
+# deadlines) without pro-level latency. Thinking tokens count against
+# max_output_tokens on Gemini 2.5, so callers' caps are sized to leave room
+# for the answer after thinking. NOTE: if you switch chat_model to
+# gemini-2.5-pro, this budget is still valid (pro just can't be set to 0).
+_THINKING = types.ThinkingConfig(thinking_budget=512)
 
 # Gemini intermittently returns 503 UNAVAILABLE ("high demand") or 429
 # (rate limit). These are transient, so retry with exponential backoff before
@@ -42,7 +44,7 @@ async def _generate(prompt: str, *, max_output_tokens: int, temperature: float) 
     config = types.GenerateContentConfig(
         max_output_tokens=max_output_tokens,
         temperature=temperature,
-        thinking_config=_THINKING_OFF,
+        thinking_config=_THINKING,
     )
     last_exc: Exception | None = None
     for attempt in range(_MAX_ATTEMPTS):
@@ -63,10 +65,11 @@ async def _generate(prompt: str, *, max_output_tokens: int, temperature: float) 
 
 async def summarize(client_name: str, chunks: list[str]) -> str:
     prompt = SUMMARIZE_CLIENT_PROMPT.format(
+        today=datetime.now().strftime("%A, %Y-%m-%d"),
         client_name=client_name,
         chunks=_join_chunks(chunks),
     )
-    return await _generate(prompt, max_output_tokens=500, temperature=0.3)
+    return await _generate(prompt, max_output_tokens=1200, temperature=0.3)
 
 
 async def answer(
@@ -82,4 +85,4 @@ async def answer(
         chunks=_join_chunks(chunks),
         timeframe_note=f"\n{timeframe_note}\n" if timeframe_note else "",
     )
-    return await _generate(prompt, max_output_tokens=900, temperature=0.2)
+    return await _generate(prompt, max_output_tokens=1800, temperature=0.2)
