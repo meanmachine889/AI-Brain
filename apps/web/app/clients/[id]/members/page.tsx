@@ -13,6 +13,8 @@ import {
 } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { AppShell } from "@/components/app-shell";
+import { PersonAvatar } from "@/components/avatar";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,8 +136,11 @@ export default function ClientMembersPage() {
   return (
     <AppShell title={client?.name ?? "Members"}>
       <div className="canvas-warm h-full overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-5 pb-10 pt-10">
-          <h1 className="mb-6 text-xl font-semibold">Members</h1>
+        <div className="mx-auto max-w-3xl px-5 pb-10 pt-8">
+          <PageHeader
+            title="Members"
+            description="Who can see this client, and at what level."
+          />
 
           {loading ? (
             <div className="space-y-3">
@@ -151,7 +156,7 @@ export default function ClientMembersPage() {
               {/* invite form */}
               <form
                 onSubmit={invite}
-                className="mb-8 grid gap-3 rounded-2xl border bg-background p-4 shadow-soft sm:grid-cols-[1fr_auto_1fr_auto]"
+                className="mb-8 grid gap-3 rounded-xl bg-card p-4 shadow-soft sm:grid-cols-[1fr_auto_1fr_auto]"
               >
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-xs">Google email</Label>
@@ -201,9 +206,14 @@ export default function ClientMembersPage() {
                   No members yet. Invite someone above.
                 </p>
               ) : (
-                <ul className="mb-8 divide-y rounded-2xl border bg-background shadow-soft">
+                <ul className="mb-8 divide-y divide-border/60 rounded-xl bg-card shadow-soft">
                   {members.map((m) => (
                     <li key={m.member_id} className="flex items-center gap-3 px-4 py-3">
+                      <PersonAvatar
+                        seed={m.email}
+                        alt={m.name}
+                        className="size-8 shrink-0"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
                           {m.name}
@@ -241,9 +251,14 @@ export default function ClientMembersPage() {
                   <h2 className="mb-3 text-sm font-medium text-muted-foreground">
                     Pending invites ({invites.length})
                   </h2>
-                  <ul className="divide-y rounded-2xl border bg-background shadow-soft">
+                  <ul className="divide-y divide-border/60 rounded-xl bg-card shadow-soft">
                     {invites.map((i) => (
                       <li key={i.id} className="flex items-center gap-3 px-4 py-3">
+                        <PersonAvatar
+                          seed={i.email}
+                          alt={i.email}
+                          className="size-8 shrink-0 opacity-60"
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm">{i.email}</p>
                           <p className="text-xs text-muted-foreground">

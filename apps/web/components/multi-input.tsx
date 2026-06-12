@@ -67,7 +67,7 @@ export function MultiInput({
           }}
           placeholder={placeholder}
           className={cn(
-            "h-9 flex-1 rounded-md bg-muted px-3 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring/40",
+            "h-9 flex-1 rounded-lg border border-input bg-transparent px-3 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30",
             mono && "mono",
           )}
         />
@@ -75,7 +75,7 @@ export function MultiInput({
           type="button"
           onClick={add}
           aria-label="Add"
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="grid size-9 shrink-0 place-items-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:bg-input/30"
         >
           <Plus className="size-4" />
         </button>

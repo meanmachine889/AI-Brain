@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api, getToken, type Alert, type Client } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClientAlertsPage() {
@@ -51,8 +52,11 @@ export default function ClientAlertsPage() {
   return (
     <AppShell title={client?.name ?? "Attention"}>
       <div className="canvas-warm h-full overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-5 pb-10 pt-10">
-          <h1 className="mb-6 text-xl font-semibold">Alerts</h1>
+        <div className="mx-auto max-w-3xl px-5 pb-10 pt-8">
+          <PageHeader
+            title="Attention"
+            description="Open alerts for this client — resolve them as they're handled."
+          />
 
           {loading ? (
             <div className="space-y-3">
@@ -62,11 +66,14 @@ export default function ClientAlertsPage() {
           ) : alerts.length === 0 ? (
             <p className="text-sm text-muted-foreground">No alerts. All clear.</p>
           ) : (
-            <ul className="space-y-5">
+            <ul className="divide-y divide-border/60 rounded-xl bg-card shadow-soft">
               {alerts.map((a) => (
-                <li key={a.id} className="flex items-baseline justify-between gap-4">
+                <li
+                  key={a.id}
+                  className="flex items-baseline justify-between gap-4 px-4 py-3.5"
+                >
                   <div>
-                    <p className="text-[15px] leading-relaxed text-foreground">
+                    <p className="text-[14px] leading-relaxed text-foreground">
                       {a.message}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">

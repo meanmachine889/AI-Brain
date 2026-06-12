@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { WorkspaceProvider } from "@/components/app-data";
 import { AppRail } from "@/components/app-rail";
 import { AppSidebar } from "@/components/app-sidebar";
+import { CommandMenu } from "@/components/command-menu";
 
 // Authenticated app shell: two-tier sidebar (slim rail + contextual panel) +
 // a floating content inset. Pages render their body as children; the shell
@@ -47,6 +48,8 @@ function ShellInner({ children, title }: { children: ReactNode; title?: string }
 
   return (
     <div className="flex h-svh w-full overflow-hidden bg-sidebar">
+      <CommandMenu />
+
       {/* Tier 1 + 2 — desktop */}
       <div className="hidden md:flex">
         <AppRail />

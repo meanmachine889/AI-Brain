@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api, getToken, type AuditEntry, type Client } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const ACTION_LABEL: Record<string, string> = {
@@ -62,11 +63,11 @@ export default function ClientActivityPage() {
   return (
     <AppShell title={client?.name ?? "Activity"}>
       <div className="canvas-warm h-full overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-5 pb-10 pt-10">
-          <h1 className="text-xl font-semibold">Activity</h1>
-          <p className="mb-6 mt-1 text-sm text-muted-foreground">
-            Who accessed this client&apos;s data, and when.
-          </p>
+        <div className="mx-auto max-w-3xl px-5 pb-10 pt-8">
+          <PageHeader
+            title="Activity"
+            description="Who accessed this client's data, and when."
+          />
 
           {loading ? (
             <div className="space-y-3">
@@ -80,16 +81,19 @@ export default function ClientActivityPage() {
           ) : entries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No access recorded yet.</p>
           ) : (
-            <ul className="space-y-5">
+            <ul className="divide-y divide-border/60 rounded-xl bg-card shadow-soft">
               {entries.map((e) => {
                 const question =
                   e.action === "ask_client" && typeof e.metadata?.question === "string"
                     ? (e.metadata.question as string)
                     : null;
                 return (
-                  <li key={e.id} className="flex items-baseline justify-between gap-4">
+                  <li
+                    key={e.id}
+                    className="flex items-baseline justify-between gap-4 px-4 py-3.5"
+                  >
                     <div className="min-w-0">
-                      <p className="text-[15px] leading-relaxed text-foreground">
+                      <p className="text-[14px] leading-relaxed text-foreground">
                         {describe(e)}
                       </p>
                       {question && (

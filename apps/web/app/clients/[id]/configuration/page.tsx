@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api, type Client } from "@/lib/api";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { useWorkspace } from "@/components/app-data";
 import { MultiInput } from "@/components/multi-input";
 import {
@@ -13,7 +14,7 @@ import {
   type Provider,
 } from "@/components/brand-icons";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 function Section({
   icon,
@@ -87,18 +88,16 @@ function ConfigForm({ client }: { client: Client }) {
   }
 
   const labelCls = "mb-1.5 block text-[11px] font-[510] uppercase tracking-[0.05em] text-muted-foreground";
-  const inputCls =
-    "h-9 w-full rounded-md bg-muted px-3 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:ring-1 focus:ring-ring/40";
 
   return (
     <div className="space-y-4">
       {/* Client */}
       <Section title="Client" desc="How this client is identified across the workspace.">
         <label className={labelCls}>Name</label>
-        <input
+        <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className={inputCls}
+          className="h-9 text-[13px]"
           placeholder="Acme Inc."
         />
       </Section>
@@ -135,10 +134,10 @@ function ConfigForm({ client }: { client: Client }) {
         <div className="space-y-4">
           <div>
             <label className={labelCls}>Domain</label>
-            <input
+            <Input
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              className={cn(inputCls, "mono")}
+              className="mono h-9 text-[13px]"
               placeholder="acme.com"
             />
           </div>
@@ -178,7 +177,7 @@ function ConfigForm({ client }: { client: Client }) {
         >
           Cancel
         </Button>
-        <Button onClick={save} disabled={saving} className="cta-lime border-0 font-[510]">
+        <Button onClick={save} disabled={saving} className="font-[510]">
           {saving ? "Saving…" : "Save changes"}
         </Button>
       </div>
@@ -210,12 +209,10 @@ function ConfigurationContent() {
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 pb-10 pt-8">
-      <div className="mb-4">
-        <h1 className="text-[15px] font-[590] tracking-[-0.01em]">Configuration</h1>
-        <p className="text-xs text-muted-foreground">
-          Map this client&apos;s sources, then save to refresh its picture.
-        </p>
-      </div>
+      <PageHeader
+        title="Configuration"
+        description="Map this client's sources, then save to refresh its picture."
+      />
       {client ? (
         <ConfigForm client={client} />
       ) : (

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api, getToken, type Client } from "@/lib/api";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,16 +52,13 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <h1 className="text-2xl font-semibold">Add a client</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Create a client, then map its data sources — Slack channels, a Jira
-              project, or an email domain. The brain builds from there.
-            </p>
-            <div className="mt-6">
-              <AddClientForm
-                onCreated={(id) => router.replace(`/clients/${id}`)}
-              />
-            </div>
+            <PageHeader
+              title="Add a client"
+              description="Create a client, then map its data sources — Slack channels, a Jira project, or an email domain. The brain builds from there."
+            />
+            <AddClientForm
+              onCreated={(id) => router.replace(`/clients/${id}`)}
+            />
           </>
         )}
       </div>
@@ -110,7 +108,7 @@ function AddClientForm({ onCreated }: { onCreated: (id: string) => void }) {
   return (
     <form
       onSubmit={submit}
-      className="grid gap-4 rounded-xl border bg-muted/30 p-5 shadow-soft"
+      className="grid gap-4 rounded-xl bg-card p-5 shadow-soft"
     >
       {fields.map(([label, value, set, ph]) => (
         <div key={label} className="space-y-1.5">

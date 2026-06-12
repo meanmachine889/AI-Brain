@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api, getToken, type Integration } from "@/lib/api";
 import { AppShell } from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
 import { PROVIDER_ICON, type Provider } from "@/components/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,16 +82,13 @@ export default function IntegrationsPage() {
 
   return (
     <AppShell title="Integrations">
-      <main className="mx-auto max-w-3xl w-full px-4 py-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Integrations</h1>
-          <p className="text-sm text-muted-foreground">
-            Connect data sources. Ingested activity feeds every client&apos;s
-            summary and answers.
-          </p>
-        </div>
+      <div className="mx-auto w-full max-w-3xl px-5 pb-10 pt-8">
+        <PageHeader
+          title="Integrations"
+          description="Connect data sources. Ingested activity feeds every client's summary and answers."
+        />
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           {PROVIDERS.map((p) => {
             const conn = connected(p.id);
             const Icon = PROVIDER_ICON[p.id as Provider];
@@ -103,7 +101,7 @@ export default function IntegrationsPage() {
                       {p.name}
                     </CardTitle>
                     {conn ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                      <Badge className="border-transparent bg-emerald/15 text-emerald">
                         Connected
                       </Badge>
                     ) : p.live ? null : (
@@ -143,7 +141,7 @@ export default function IntegrationsPage() {
             );
           })}
         </div>
-      </main>
+      </div>
     </AppShell>
   );
 }

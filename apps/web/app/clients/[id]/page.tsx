@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowUp, Search } from "lucide-react";
+import { ArrowUp, Plus } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeCite from "@/lib/rehype-cite";
 import {
@@ -17,7 +18,18 @@ import { relativeTime, sourceLabel } from "@/lib/format";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Typewriter } from "@/components/ui/typewriter";
 import { cn } from "@/lib/utils";
+
+// Cycled through the empty composer as a living placeholder — the suggestions
+// live *in* the input, not as chips below it.
+const ASK_SUGGESTIONS = [
+  "What's blocking us right now?",
+  "Any risks I should know about?",
+  "What changed this week?",
+  "Summarize the latest client emails…",
+  "Which deadlines are at risk?",
+];
 
 type Turn = {
   q: string;
@@ -148,43 +160,68 @@ function ClientDetailView() {
   // composer at the bottom once a conversation has started.
   const askCard = (
     <div className="relative">
-      <div className="overflow-hidden rounded-[24px] bg-card shadow-float">
+      {/* outer frame — a soft tray the input sits inside (screenshot style) */}
+      <div className="ring-hairline rounded-2xl bg-secondary/50 p-1.5 shadow-float">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             submit(question);
           }}
-          className="flex items-center gap-3 px-4 py-3"
+          className="ring-hairline flex flex-col overflow-hidden rounded-[10px] bg-card"
         >
-          <Search className="size-4 shrink-0 text-muted-foreground" />
-          <textarea
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submit(question);
-              }
-            }}
-            rows={1}
-            placeholder="Ask anything…"
-            className="max-h-32 flex-1 resize-none bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={asking || !question.trim()}
-            className="size-8 shrink-0 rounded-full"
-          >
-            <ArrowUp className="size-4" />
-          </Button>
-        </form>
-
-        {empty && (
-          <div className="border-t border-border/60 px-4 py-2.5 text-[13px] text-muted-foreground">
-            Ask about risks, deadlines, or the latest activity to get started.
+          <div className="px-4 pb-1 pt-3.5">
+            {/* tight wrapper: the typewriter overlay shares the textarea's exact
+                box, so suggestions sit precisely where the user types */}
+            <div className="relative">
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    submit(question);
+                  }
+                }}
+                rows={2}
+                aria-label="Ask anything"
+                className="block max-h-40 w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none"
+              />
+              {question === "" && (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 text-[15px] leading-relaxed text-muted-foreground/80"
+                >
+                  <Typewriter
+                    words={ASK_SUGGESTIONS}
+                    speed={45}
+                    delayBetweenWords={2200}
+                    cursor
+                    cursorChar="|"
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        )}
+
+          <div className="flex items-center justify-between px-2.5 pb-2.5">
+            <Link
+              href={`/clients/${clientId}/configuration`}
+              title="Map data sources"
+              aria-label="Map data sources"
+              className="grid size-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Plus className="size-4" />
+            </Link>
+            <Button
+              type="submit"
+              size="icon"
+              disabled={asking || !question.trim()}
+              className="size-8 shrink-0 rounded-full"
+            >
+              <ArrowUp className="size-4" />
+            </Button>
+          </div>
+        </form>
       </div>
       <p className="mt-2 text-center text-[11px] text-muted-foreground/60">
         Grounded in {client?.name ?? "client"} activity · may be imperfect

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Plus, LogOut, Settings2 } from "lucide-react";
 import { logout } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useWorkspace, initials } from "@/components/app-data";
+import { useWorkspace } from "@/components/app-data";
+import { ClientAvatar, PersonAvatar } from "@/components/avatar";
 import {
   PROVIDER_ICON,
   PROVIDER_LABEL,
@@ -30,8 +31,8 @@ import {
 const ALL_PROVIDERS: Provider[] = ["slack", "jira", "gmail", "drive"];
 
 // Tier 1 — the slim, always-dark rail (Slack-style), floating as a rounded card.
-// Workspace mark on top, one avatar per client (active = raised tile + indigo
-// edge, attention dot), agency-wide integration icons, then theme + account.
+// Workspace mark on top, one avatar tile per client (active = lifted + lime
+// edge), then the agency-wide integrations, theme and account.
 export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { me, clients, connected, loading, activeId } = useWorkspace();
@@ -39,7 +40,7 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav
       aria-label="Workspace"
-      className="matte m-2 flex w-[60px] shrink-0 flex-col items-center gap-1 self-stretch overflow-hidden rounded-2xl bg-rail py-3 text-rail-foreground shadow-raised"
+      className="matte flex w-[64px] shrink-0 flex-col items-center gap-1 self-stretch overflow-hidden border-r border-white/[0.05] bg-rail py-3 text-rail-foreground"
     >
       {/* Workspace mark */}
       <div className="mb-2 grid size-9 place-items-center rounded-[10px] bg-obsidian text-mist shadow-depth">
@@ -63,16 +64,16 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
                         onClick={onNavigate}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "relative grid size-9 place-items-center rounded-xl text-[12px] font-[590] transition-all",
+                          "relative block size-9 rounded-xl transition-all",
                           active
-                            ? "bg-obsidian text-snow shadow-depth ring-1 ring-indigo/60"
-                            : "bg-white/[0.04] text-mist hover:bg-white/[0.08] hover:text-snow",
+                            ? "shadow-depth ring-1 ring-white/25"
+                            : "opacity-70 saturate-[0.85] hover:opacity-100 hover:saturate-100",
                         )}
                       >
-                        {initials(c.name)}
+                        <ClientAvatar name={c.name} className="size-full" />
                         <span
                           className={cn(
-                            "absolute -left-[11px] top-1/2 h-5 -translate-y-1/2 rounded-r-full bg-acid-lime transition-all",
+                            "absolute -left-[14px] top-1/2 h-5 -translate-y-1/2 rounded-r-full bg-acid-lime transition-all",
                             active ? "w-[3px] opacity-100" : "w-0 opacity-0",
                           )}
                         />
@@ -102,8 +103,8 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
         </Tooltip>
       </div>
 
-      {/* Integrations — agency-wide. Full-color when connected, dimmed when not. */}
-      <div className="flex flex-col items-center gap-1.5 pt-1">
+      {/* Integrations — agency-wide sources. Full-color when connected. */}
+      <div className="flex flex-col items-center gap-1 border-t border-white/[0.06] pt-2">
         {ALL_PROVIDERS.map((p) => {
           const Icon = PROVIDER_ICON[p];
           const on = connected.has(p);
@@ -119,10 +120,13 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
                   >
                     <Icon
                       className={cn(
-                        "size-[18px] transition",
+                        "size-[17px] transition",
                         on ? "opacity-100" : "opacity-35 grayscale",
                       )}
                     />
+                    {on && (
+                      <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-emerald" />
+                    )}
                   </Link>
                 }
               />
@@ -145,9 +149,11 @@ export function AppRail({ onNavigate }: { onNavigate?: () => void }) {
               aria-label="Account"
               className="mt-0.5 grid size-9 place-items-center rounded-xl transition-colors hover:bg-white/[0.06]"
             >
-              <span className="grid size-7 place-items-center rounded-full bg-indigo text-[10px] font-[590] text-snow">
-                {initials(me?.name ?? me?.agency.name ?? "?")}
-              </span>
+              <PersonAvatar
+                seed={me?.email ?? me?.name ?? "account"}
+                alt={me?.name ?? "Account"}
+                className="size-7 ring-1 ring-white/15"
+              />
             </button>
           }
         />
