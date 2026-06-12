@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeftClose, Users, ScrollText, Search } from "lucide-react";
+import { PanelLeftClose, Users, ScrollText, Search, Activity } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Home03Icon,
@@ -156,6 +156,13 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                   icon={<HugeiconsIcon icon={Home03Icon} />}
                   label="Home"
                 />
+                <NavItem
+                  href={`${base}/feed`}
+                  onClick={onNavigate}
+                  active={pathname === `${base}/feed`}
+                  icon={<Activity />}
+                  label="Recent activity"
+                />
                 {alertCount > 0 && (
                   <NavItem
                     href={`${base}/alerts`}
@@ -192,7 +199,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     onClick={onNavigate}
                     active={pathname === `${base}/activity`}
                     icon={<ScrollText />}
-                    label="Activity"
+                    label="Access log"
                   />
                 )}
               </div>

@@ -90,7 +90,27 @@ function ConfigForm({ client }: { client: Client }) {
   const labelCls = "mb-1.5 block text-[11px] font-[510] uppercase tracking-[0.05em] text-muted-foreground";
 
   return (
-    <div className="space-y-4">
+    <>
+      <PageHeader
+        title="Configuration"
+        description="Map this client's sources, then save to refresh its picture."
+        actions={
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => router.push(`/clients/${client.id}`)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={save} disabled={saving} className="font-[510]">
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="grid gap-4 md:grid-cols-2">
       {/* Client */}
       <Section title="Client" desc="How this client is identified across the workspace.">
         <label className={labelCls}>Name</label>
@@ -167,21 +187,8 @@ function ConfigForm({ client }: { client: Client }) {
           mono
         />
       </Section>
-
-      {/* Actions */}
-      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-2 border-t border-border bg-background/90 px-1 py-3 backdrop-blur">
-        <Button
-          variant="ghost"
-          onClick={() => router.push(`/clients/${client.id}`)}
-          disabled={saving}
-        >
-          Cancel
-        </Button>
-        <Button onClick={save} disabled={saving} className="font-[510]">
-          {saving ? "Saving…" : "Save changes"}
-        </Button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -208,19 +215,21 @@ function ConfigurationContent() {
   }, [fromWs, wsLoading, params.id]);
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-10 pt-8">
-      <PageHeader
-        title="Configuration"
-        description="Map this client's sources, then save to refresh its picture."
-      />
+    <div className="w-full px-6 pb-10 pt-8">
       {client ? (
         <ConfigForm client={client} />
       ) : (
-        <div className="space-y-4">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-xl bg-card" />
-          ))}
-        </div>
+        <>
+          <PageHeader
+            title="Configuration"
+            description="Map this client's sources, then save to refresh its picture."
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-32 animate-pulse rounded-xl bg-card" />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

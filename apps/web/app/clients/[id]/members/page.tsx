@@ -136,7 +136,7 @@ export default function ClientMembersPage() {
   return (
     <AppShell title={client?.name ?? "Members"}>
       <div className="canvas-warm h-full overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-5 pb-10 pt-8">
+        <div className="w-full px-6 pb-10 pt-8">
           <PageHeader
             title="Members"
             description="Who can see this client, and at what level."

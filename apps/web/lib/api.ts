@@ -213,6 +213,22 @@ export type Integration = {
   scopes: string[];
 };
 
+// GET /clients/{id}/feed — raw ingested activity, newest first
+export type FeedRange = "week" | "month" | "all";
+
+export type FeedItem = {
+  id: string;
+  source: "slack" | "gmail" | "jira" | "drive";
+  content: string;
+  source_timestamp: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+export type FeedResponse = {
+  range: FeedRange;
+  items: FeedItem[];
+};
+
 // GET /activity (owner-only) — append-only access trail
 export type AuditAction =
   | "view_client"

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -101,6 +101,53 @@ async def get_summary(
         "chunk_count": summary.chunk_count if summary else 0,
         "is_stale": is_stale,
         "refreshing": refreshing,
+    }
+
+
+# Rolling windows for the activity feed. "all" returns everything (capped).
+_FEED_WINDOWS = {"week": 7, "month": 30}
+_FEED_LIMIT = 300
+
+
+@router.get("/clients/{client_id}/feed")
+async def client_feed(
+    client_id: str,
+    range_: str = Query("week", alias="range", pattern="^(week|month|all)$"),
+    member: Member = Depends(get_current_member),
+    db: AsyncSession = Depends(get_db),
+):
+    """Raw ingested activity for one client, newest first, for the Recent
+    activity view. `range` is a rolling window: week (7d), month (30d), all."""
+    client = (
+        await db.execute(
+            select(Client).where(Client.id == client_id, Client.agency_id == member.agency_id)
+        )
+    ).scalar_one_or_none()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    q = select(DataChunk).where(DataChunk.client_id == client_id)
+    days = _FEED_WINDOWS.get(range_)
+    if days is not None:
+        q = q.where(DataChunk.source_timestamp >= datetime.utcnow() - timedelta(days=days))
+    rows = (
+        await db.execute(
+            q.order_by(desc(DataChunk.source_timestamp)).limit(_FEED_LIMIT)
+        )
+    ).scalars().all()
+
+    return {
+        "range": range_,
+        "items": [
+            {
+                "id": str(r.id),
+                "source": r.source,
+                "content": r.content,
+                "source_timestamp": r.source_timestamp,
+                "metadata": r.metadata_,
+            }
+            for r in rows
+        ],
     }
 
 

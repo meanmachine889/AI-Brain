@@ -18,6 +18,7 @@ import {
   LogOut,
   Settings2,
   SunMoon,
+  Activity,
 } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -113,6 +114,14 @@ export function CommandMenu() {
             icon: <HugeiconsIcon icon={Home03Icon} />,
             run: () => go(base),
           },
+          {
+            id: "nav-feed",
+            group: "Navigate",
+            label: "Recent activity",
+            hint: activeClient.name,
+            icon: <Activity />,
+            run: () => go(`${base}/feed`),
+          },
           ...(alertCount > 0
             ? [
                 {
@@ -146,7 +155,7 @@ export function CommandMenu() {
                 {
                   id: "nav-activity",
                   group: "Navigate",
-                  label: "Activity",
+                  label: "Access log",
                   hint: activeClient.name,
                   icon: <ScrollText />,
                   run: () => go(`${base}/activity`),
