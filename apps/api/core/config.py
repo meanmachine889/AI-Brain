@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     # In prod this comes from a secrets manager, never the DB or git. Rotate by
     # prepending a new key, re-encrypting, then dropping the old one.
     token_encryption_keys: str = ""
+    # Auth-endpoint rate limiting (Redis-backed, per client IP). Brute-force /
+    # token-stuffing protection on /auth/google, /refresh, /accept-invite,
+    # /invite-preview. Disable in tests/dev via RATE_LIMIT_ENABLED=false.
+    rate_limit_enabled: bool = True
+    auth_rate_limit_times: int = 10
+    auth_rate_limit_window_seconds: int = 60
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

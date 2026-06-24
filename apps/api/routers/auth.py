@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
+from core.ratelimit import auth_rate_limit
 from core.security import (
     verify_google_id_token,
     create_session_token,
@@ -80,7 +81,7 @@ async def _session_response(db: AsyncSession, member: Member) -> dict:
 
 
 # ---- Google sign-in: resolve the identity ----
-@router.post("/google")
+@router.post("/google", dependencies=[auth_rate_limit("auth_google")])
 async def google_auth(body: GoogleAuthRequest, db: AsyncSession = Depends(get_owner_db)):
     """Verify a Google ID token and resolve it:
     - existing owner/member -> a session
@@ -186,7 +187,7 @@ async def _load_valid_invite(db: AsyncSession, invite_token: str, email: str) ->
     return invite
 
 
-@router.get("/invite-preview")
+@router.get("/invite-preview", dependencies=[auth_rate_limit("auth_invite_preview")])
 async def invite_preview(token: str, db: AsyncSession = Depends(get_owner_db)):
     """For the 'You've been invited to {Agency}' popup. Reveals only names/role."""
     invite = (
@@ -212,7 +213,7 @@ async def invite_preview(token: str, db: AsyncSession = Depends(get_owner_db)):
     }
 
 
-@router.post("/accept-invite")
+@router.post("/accept-invite", dependencies=[auth_rate_limit("auth_accept_invite")])
 async def accept_invite(
     body: AcceptInviteRequest,
     db: AsyncSession = Depends(get_owner_db),
@@ -292,7 +293,7 @@ async def logout(
     return {"logged_out": True}
 
 
-@router.post("/refresh")
+@router.post("/refresh", dependencies=[auth_rate_limit("auth_refresh")])
 async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_owner_db)):
     """Exchange a valid refresh token for a fresh short-lived access token (and a
     rotated refresh token). Returns 401 if the refresh token was revoked (logout
