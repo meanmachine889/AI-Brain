@@ -49,8 +49,8 @@ Key files: `apps/api/db/models.py`, `apps/api/routers/integrations.py`,
 | — | Audit logging (who read which client's data) | Low | ✅ Done (`audit_logs` + Activity page) |
 | — | Prompt-injection hardening (latent until LLM gets tools) | Low | ✅ Done (fenced untrusted content + sanitizer) |
 | — | Data minimization (truncate stored email bodies) | Low | ✗ Won't do (RAG quality; rely on encryption + isolation + audit) |
-| — | Rate-limiting / brute-force protection on auth | Low | ☐ Open |
-| — | Security headers / HSTS (edge/deploy layer) | Low | ☐ Open (ops) |
+| — | Rate-limiting / brute-force protection on auth | Low | ✅ Done (Redis fixed-window, per-IP) |
+| — | Security headers / HSTS / CSP (app middleware) | Low | ✅ Done (HSTS gated by `HSTS_ENABLED`) |
 | 3 | Third-party (Gemini) data egress — DPA/consent + paid-tier (no-train) | Compliance | ☐ Open (ops/legal) |
 | — | DB-at-rest encryption (RDS/Cloud SQL) | Ops | ☐ Open (ops) |
 | — | Fresh prod `TOKEN_ENCRYPTION_KEYS` from secrets manager | Ops | ☐ Open (ops) |
@@ -211,6 +211,41 @@ and a real one the moment the LLM gets tools.
 
 This is mitigation, not a guarantee — revisit before giving the LLM any tools/actions.
 
+### Auth rate-limiting ✅
+
+**Problem.** The unauthenticated auth endpoints (`/auth/google`, `/auth/refresh`,
+`/auth/accept-invite`, `/auth/invite-preview`) had no throttle — open to
+credential/token-stuffing and invite-token brute-force/enumeration.
+
+**Fix.** `core/ratelimit.py` — a `RateLimiter` FastAPI dependency backed by **Redis**
+(the existing Celery broker), so the limit is shared correctly across multiple API
+workers rather than per-process. **Fixed-window** counter (`INCR` + `EXPIRE` in an
+atomic pipeline) keyed by `rl:{bucket}:{ip}`; **per-endpoint buckets** so flooding
+one route can't lock out another. Over the limit → **429 + `Retry-After`**. Reads
+the `X-Forwarded-For` first hop (terminate TLS at a trusted proxy in prod, since the
+header is otherwise client-spoofable). **Fails open** if Redis is unreachable — a
+broker hiccup must not lock everyone out of login. Config: `RATE_LIMIT_ENABLED`
+(default on; off in tests/dev), `AUTH_RATE_LIMIT_TIMES` (10), `_WINDOW_SECONDS` (60).
+Tests: `tests/test_ratelimit.py` (7, fake async Redis); verified live against real
+Redis (429 at limit+1, fail-open when down).
+
+### Security response headers ✅
+
+**Problem.** No `Content-Security-Policy`, `X-Frame-Options`, `nosniff`, or HSTS on
+responses — clickjacking of `/docs` and weak defaults for any browser-rendered content.
+
+**Fix.** `core/security_headers.py` `SecurityHeadersMiddleware` (added **after** CORS
+so it runs outermost — headers also land on preflight + error responses) sets
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy: strict-origin-when-cross-origin`, and a **CSP** that is strict
+(`default-src 'none'`) for API/JSON responses but **relaxed for the docs surfaces**
+(`/docs`, `/redoc`, `/openapi.json`) so the Swagger/ReDoc CDN bundle still loads.
+**HSTS** is gated behind `HSTS_ENABLED` (default off, so it can't pin localhost to
+HTTPS in dev); `HSTS_MAX_AGE` configurable. Tests: `tests/test_security_headers.py`
+(6). *(This pass also fixed a latent bug where `from __future__ import annotations`
+in `ratelimit.py` 500'd `/openapi.json` by turning the limiter's `Request` param into
+an unresolved forward-ref FastAPI misread as a query param.)*
+
 ---
 
 ## 4. Remaining work (detail + recommended approach)
@@ -325,10 +360,12 @@ tier does not train on the data. **Owner: ops/legal.**
       data-governance + configurable/zero retention with the same models.
 - [ ] DPA with Google for Gemini; client consent for ingesting their comms (Google
       is a sub-processor).
-- [ ] **Rate-limit the auth endpoints** (`/auth/google`, `/auth/refresh`,
-      `/auth/accept-invite`) at the edge or app layer (brute-force / token-stuffing).
-- [ ] **Security headers / HSTS** at the edge (HSTS, `X-Content-Type-Options`,
-      `Referrer-Policy`, a CSP for the web app). TLS everywhere.
+- [x] **Rate-limit the auth endpoints** (`/auth/google`, `/auth/refresh`,
+      `/auth/accept-invite`, `/auth/invite-preview`) — done in-app (Redis fixed-window,
+      per-IP, fails open). An edge/WAF limit is still worth adding as defense-in-depth.
+- [x] **Security headers / CSP** — done as app middleware (`nosniff`, `X-Frame-Options:
+      DENY`, `Referrer-Policy`, strict/relaxed CSP). **Set `HSTS_ENABLED=true` in prod**
+      (behind TLS) — it's off by default so dev isn't pinned to HTTPS.
 - [ ] Decide retention policy (see decisions) and, if wanted, build the optional
       per-agency `retention_days` timer.
 
