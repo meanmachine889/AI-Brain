@@ -13,8 +13,6 @@ The limiter **fails open**: if Redis is unreachable, a request is allowed (and t
 error logged). A broker hiccup must not lock everyone out of login.
 """
 
-from __future__ import annotations
-
 import logging
 
 from fastapi import Depends, HTTPException, Request

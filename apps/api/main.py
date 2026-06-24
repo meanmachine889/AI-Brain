@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import settings
+from core.security_headers import SecurityHeadersMiddleware
 from routers import activity, auth, clients, integrations, members, summaries
 
 app = FastAPI(title="Agency AI Brain", version="0.1.0")
@@ -15,6 +16,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Added AFTER CORS so it runs OUTERMOST (Starlette wraps last-added first): its
+# headers land on every response, including CORS preflight and error responses.
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(clients.router, prefix="/clients", tags=["clients"])

@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     auth_rate_limit_times: int = 10
     auth_rate_limit_window_seconds: int = 60
+    # HSTS (Strict-Transport-Security) forces HTTPS for max-age seconds. Only
+    # safe over real TLS — on localhost it can pin the browser to HTTPS. Off by
+    # default; set HSTS_ENABLED=true in prod (behind TLS). The other security
+    # headers are always sent.
+    hsts_enabled: bool = False
+    hsts_max_age: int = 31536000  # 1 year
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
