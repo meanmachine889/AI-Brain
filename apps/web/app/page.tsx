@@ -37,6 +37,8 @@ import {
 } from "@/components/brand-icons";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { Marquee } from "@/components/ui/marquee";
+import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
+import { PointerHighlight } from "@/components/ui/pointer-highlight";
 
 // ── Neuron SVG logomark (no bounding box) ────────────────────────────────────
 function NeuronMark({ className }: { className?: string }) {
@@ -451,19 +453,15 @@ export default function LandingPage() {
       </header>
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative flex items-center justify-center" style={{ minHeight: "calc(100vh - 3.5rem)" }}>
-        {/* Dot grid — fades at edges */}
-        <div
-          className="pointer-events-none absolute inset-0 dot-pattern opacity-50"
-          style={{
-            WebkitMaskImage: "radial-gradient(ellipse 90% 80% at 50% 0%, black 0%, transparent 85%)",
-            maskImage: "radial-gradient(ellipse 90% 80% at 50% 0%, black 0%, transparent 85%)",
-          }}
-        />
-        {/* Bottom gradient blend to white */}
-        <div className="pointer-events-none absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-background to-transparent" />
+      <section className="relative overflow-hidden">
+        {/* Animated ripple background */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <BackgroundRippleEffect />
+        </div>
+        {/* Bottom gradient blend to next section */}
+        <div className="pointer-events-none absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-background to-transparent" />
 
-        <div className="relative mx-auto w-full max-w-5xl px-6 text-center py-16">
+        <div className="relative mx-auto w-full max-w-5xl px-6 text-center pt-20 pb-24 md:pt-28 md:pb-28">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -488,12 +486,18 @@ export default function LandingPage() {
             {["The", "shared"].map((w) => (
               <motion.span key={w} variants={heroWord} className="inline-block mr-[0.22em]">{w}</motion.span>
             ))}
-            <motion.span
-              variants={heroWord}
-              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-indigo to-[#8b95e8]"
+            <PointerHighlight
+              rectangleClassName="border-indigo/40 dark:border-indigo/40"
+              pointerClassName="text-indigo"
+              containerClassName="inline-block"
             >
-              memory&nbsp;layer
-            </motion.span>
+              <motion.span
+                variants={heroWord}
+                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-indigo to-[#8b95e8] relative z-10"
+              >
+                memory&nbsp;layer
+              </motion.span>
+            </PointerHighlight>
             <br className="hidden md:block" />
             {["for", "digital", "agencies"].map((w) => (
               <motion.span key={w} variants={heroWord} className="inline-block mr-[0.22em]">{w}</motion.span>
@@ -520,17 +524,29 @@ export default function LandingPage() {
           >
             <Link
               href="/login"
-              className="group cta-lime flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold shadow-raised hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150"
+              className="group relative overflow-hidden flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold bg-foreground text-background shadow-raised hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150"
             >
+              {/* Shimmer sweep */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out bg-gradient-to-r from-transparent via-white/15 to-transparent"
+              />
               Start 14-day free trial
-              <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+              <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-1" />
             </Link>
             <a
               href="#demo"
-              className="group flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-white dark:bg-card px-6 text-sm font-medium text-foreground hover:bg-muted hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 shadow-soft"
+              className="group relative overflow-hidden flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-white dark:bg-card px-6 text-sm font-medium text-foreground hover:border-foreground/20 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 shadow-soft"
             >
-              Try interactive demo
-              <ChevronRight className="size-4 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" />
+              {/* Background fill on hover */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300 ease-out bg-muted/70"
+              />
+              <span className="relative z-10 flex items-center gap-2">
+                Try interactive demo
+                <ChevronRight className="size-4 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" />
+              </span>
             </a>
           </motion.div>
 
