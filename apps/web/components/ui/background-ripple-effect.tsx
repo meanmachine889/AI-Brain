@@ -31,7 +31,11 @@ export const BackgroundRippleEffect = ({
         <div className="pointer-events-none absolute inset-0 z-[2] h-full w-full overflow-hidden" />
         <DivGrid
           key={`base-${rippleKey}`}
-          className="mask-radial-from-20% mask-radial-at-top opacity-600"
+          style={{
+            WebkitMaskImage: "radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 100%)",
+            maskImage: "radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 100%)",
+            opacity: 0.6,
+          }}
           rows={rows}
           cols={cols}
           cellSize={cellSize}
@@ -51,6 +55,7 @@ export const BackgroundRippleEffect = ({
 
 type DivGridProps = {
   className?: string;
+  style?: React.CSSProperties;
   rows: number;
   cols: number;
   cellSize: number; // in pixels
@@ -68,6 +73,7 @@ type CellStyle = React.CSSProperties & {
 
 const DivGrid = ({
   className,
+  style,
   rows = 7,
   cols = 30,
   cellSize = 56,
@@ -92,7 +98,7 @@ const DivGrid = ({
   };
 
   return (
-    <div className={cn("relative z-[3]", className)} style={gridStyle}>
+    <div className={cn("relative z-[3]", className)} style={{ ...gridStyle, ...style }}>
       {cells.map((idx) => {
         const rowIdx = Math.floor(idx / cols);
         const colIdx = idx % cols;

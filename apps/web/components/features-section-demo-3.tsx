@@ -2,7 +2,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import createGlobe from "cobe";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion } from "motion/react";
 import { IconBrandYoutubeFilled } from "@tabler/icons-react";
 
@@ -158,6 +158,15 @@ export const SkeletonTwo = () => {
     "https://images.unsplash.com/photo-1546484475-7f7bd55792da?q=80&w=2581&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   ];
 
+  const rotationsFirst = useMemo(
+    () => Array.from({ length: images.length }, () => Math.random() * 20 - 10),
+    []
+  );
+  const rotationsSecond = useMemo(
+    () => Array.from({ length: images.length }, () => Math.random() * 20 - 10),
+    []
+  );
+
   const imageVariants = {
     whileHover: {
       scale: 1.1,
@@ -179,7 +188,7 @@ export const SkeletonTwo = () => {
             variants={imageVariants}
             key={"images-first" + idx}
             style={{
-              rotate: Math.random() * 20 - 10,
+              rotate: rotationsFirst[idx],
             }}
             whileHover="whileHover"
             whileTap="whileTap"
@@ -200,7 +209,7 @@ export const SkeletonTwo = () => {
           <motion.div
             key={"images-second" + idx}
             style={{
-              rotate: Math.random() * 20 - 10,
+              rotate: rotationsSecond[idx],
             }}
             variants={imageVariants}
             whileHover="whileHover"
