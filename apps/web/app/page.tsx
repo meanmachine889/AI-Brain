@@ -4,59 +4,325 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getToken } from "@/lib/api";
-import { 
-  ArrowRight, 
-  MessageSquare, 
-  Mail, 
-  Layers, 
-  Sparkles, 
-  CheckCircle, 
-  Clock, 
-  Search, 
-  Lock, 
-  ExternalLink,
+import {
+  ArrowRight,
+  MessageSquare,
+  Mail,
+  Sparkles,
+  CheckCircle,
+  Clock,
+  Search,
+  FolderDot,
+  Zap,
+  Users,
+  Shield,
   ChevronRight,
-  RefreshCw,
-  FolderDot
 } from "lucide-react";
+import { motion, useInView } from "motion/react";
+import { useRef } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
 
-const BRAND_LOGOS = [
-  { name: "mosaic", icon: Layers },
-  { name: "Vela", icon: Sparkles },
-  { name: "Cluely", icon: Search },
-  { name: "Miria", icon: CheckCircle },
-  { name: "Caret", icon: Clock },
-  { name: "JINSO", icon: RefreshCw },
-];
+import { IntegrationsOrbit } from "@/components/illustrations/integrations-orbit";
+import { BrainHalftone } from "@/components/illustrations/brain-halftone";
+import { RecallChart } from "@/components/illustrations/recall-chart";
+import { ServerIsometric } from "@/components/illustrations/server-isometric";
+import { BenchmarkTabs } from "@/components/illustrations/benchmark-tabs";
+
+import {
+  SlackIcon,
+  JiraIcon,
+  GmailIcon,
+  DriveIcon,
+} from "@/components/brand-icons";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { Marquee } from "@/components/ui/marquee";
+
+// ── Q&A demo presets ────────────────────────────────────────────────────────
 
 const PRESETS = [
   {
     question: "What did we promise Acme by Friday?",
-    answer: "Based on recent project discussions, you promised Acme Corp the **final mobile Figma mockups** and the **database schema sign-off** by Friday at 5:00 PM. John confirmed on Slack that the design files are ready, but Sarah is still waiting on client feedback for the schema.",
+    answer:
+      "Based on recent project discussions, you promised Acme Corp the **final mobile Figma mockups** and the **database schema sign-off** by Friday at 5:00 PM. John confirmed on Slack that the design files are ready, but Sarah is still waiting on client feedback for the schema.",
     sources: [
-      { type: "slack", label: "Slack · 2h ago", text: "[John]: Mobile mockups are ready in Figma..." },
-      { type: "gmail", label: "Gmail · Yesterday", text: "Subject: Database schema update. [Sarah]: Waiting on sign-off..." }
-    ]
+      {
+        type: "slack",
+        label: "Slack · 2h ago",
+        text: "[John]: Mobile mockups are ready in Figma...",
+      },
+      {
+        type: "gmail",
+        label: "Gmail · Yesterday",
+        text: "Subject: Database schema update. [Sarah]: Waiting on sign-off...",
+      },
+    ],
   },
   {
     question: "What's blocking the Vela integration?",
-    answer: "The Vela integration is currently blocked by a **missing Google OAuth Client ID** in production. According to the Jira ticket **VEL-142**, developer Rahul noted that the client has not shared access to their Google Cloud console yet. A follow-up email was sent by PM Priya yesterday.",
+    answer:
+      "The Vela integration is currently blocked by a **missing Google OAuth Client ID** in production. According to the Jira ticket **VEL-142**, developer Rahul noted that the client has not shared access to their Google Cloud console yet. A follow-up email was sent by PM Priya yesterday.",
     sources: [
-      { type: "jira", label: "Jira · VEL-142", text: "Rahul: Blocked on client console access." },
-      { type: "gmail", label: "Gmail · 18h ago", text: "From Priya to client: Requesting GCP credentials..." }
-    ]
+      {
+        type: "jira",
+        label: "Jira · VEL-142",
+        text: "Rahul: Blocked on client console access.",
+      },
+      {
+        type: "gmail",
+        label: "Gmail · 18h ago",
+        text: "From Priya to client: Requesting GCP credentials...",
+      },
+    ],
   },
   {
     question: "Is there any scope creep on Cluely?",
-    answer: "Yes, potential scope creep detected. In Slack thread **#cluely-dev**, the client requested an **analytics dashboard module** which was not in the original project brief. A Jira comment on **CL-88** also mentions Rahul estimating this will add 12 dev-hours, but it has not been billed yet.",
+    answer:
+      "Yes, potential scope creep detected. In Slack thread **#cluely-dev**, the client requested an **analytics dashboard module** which was not in the original project brief. A Jira comment on **CL-88** also mentions Rahul estimating this will add 12 dev-hours, but it has not been billed yet.",
     sources: [
-      { type: "slack", label: "Slack · #cluely-dev", text: "Client: Can we also add a quick charts view?" },
-      { type: "jira", label: "Jira · CL-88", text: "Rahul: Added subtask for charts module (12h)." }
-    ]
-  }
+      {
+        type: "slack",
+        label: "Slack · #cluely-dev",
+        text: "Client: Can we also add a quick charts view?",
+      },
+      {
+        type: "jira",
+        label: "Jira · CL-88",
+        text: "Rahul: Added subtask for charts module (12h).",
+      },
+    ],
+  },
 ];
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+
+const STATS = [
+  { value: 30, suffix: " min", label: "saved per PM, per client day" },
+  { value: 15, suffix: "+", label: "active client streams supported" },
+  { value: 3, suffix: "s", label: "average context retrieval time" },
+];
+
+// ── Feature cards ────────────────────────────────────────────────────────────
+
+const FEATURES = [
+  {
+    icon: MessageSquare,
+    title: "Slack & Email Sync",
+    description:
+      "All client conversations ingested and indexed automatically. No manual uploads, no copy-paste.",
+    accent: "bg-sky-50 dark:bg-sky-950/30",
+    iconColor: "text-sky-600 dark:text-sky-400",
+  },
+  {
+    icon: Search,
+    title: "Natural Language Q&A",
+    description:
+      'Ask "What did we promise Acme by Friday?" and get a cited answer in under 3 seconds.',
+    accent: "bg-indigo-50 dark:bg-indigo-950/30",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+  },
+  {
+    icon: Clock,
+    title: "Daily Attention Feed",
+    description:
+      "A morning briefing of what needs action across all clients — before you open Slack.",
+    accent: "bg-amber-50 dark:bg-amber-950/30",
+    iconColor: "text-amber-600 dark:text-amber-500",
+  },
+  {
+    icon: FolderDot,
+    title: "Client Brain Records",
+    description:
+      "One unified intelligence file per client: history, blockers, people, and commitments.",
+    accent: "bg-violet-50 dark:bg-violet-950/30",
+    iconColor: "text-violet-600 dark:text-violet-400",
+  },
+  {
+    icon: Zap,
+    title: "Scope Creep Alerts",
+    description:
+      "Automatically flags new work requests against the original project brief.",
+    accent: "bg-rose-50 dark:bg-rose-950/30",
+    iconColor: "text-rose-600 dark:text-rose-400",
+  },
+  {
+    icon: Shield,
+    title: "Postgres RLS Isolation",
+    description:
+      "Each agency's data is completely isolated at the database level. We never cross-contaminate client data.",
+    accent: "bg-emerald-50 dark:bg-emerald-950/30",
+    iconColor: "text-emerald-600 dark:text-emerald-500",
+  },
+];
+
+// ── Neural network ASCII illustration (SVG) ──────────────────────────────────
+
+function NeuralNetworkSVG() {
+  const nodes = [
+    // Layer 1 (inputs)
+    { x: 60, y: 80 }, { x: 60, y: 160 }, { x: 60, y: 240 }, { x: 60, y: 320 },
+    // Layer 2 (hidden)
+    { x: 190, y: 110 }, { x: 190, y: 200 }, { x: 190, y: 290 },
+    // Layer 3 (hidden)
+    { x: 320, y: 130 }, { x: 320, y: 200 }, { x: 320, y: 270 },
+    // Layer 4 (output)
+    { x: 450, y: 160 }, { x: 450, y: 240 },
+  ];
+
+  const connections = [
+    // L1→L2
+    [0,4],[0,5],[1,4],[1,5],[1,6],[2,4],[2,5],[2,6],[3,5],[3,6],
+    // L2→L3
+    [4,7],[4,8],[5,7],[5,8],[5,9],[6,8],[6,9],
+    // L3→L4
+    [7,10],[7,11],[8,10],[8,11],[9,10],[9,11],
+  ];
+
+  const inputLabels = ["Slack", "Gmail", "Jira", "Drive"];
+  const outputLabels = ["Context", "Alerts"];
+
+  return (
+    <svg viewBox="0 0 520 400" className="w-full h-full select-none" aria-hidden>
+      <defs>
+        <linearGradient id="nn-edge" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#5e6ad2" stopOpacity="0.15" />
+          <stop offset="100%" stopColor="#5e6ad2" stopOpacity="0.5" />
+        </linearGradient>
+        <radialGradient id="nn-node-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#5e6ad2" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#5e6ad2" stopOpacity="0" />
+        </radialGradient>
+        <filter id="nn-blur">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
+      {/* ASCII-style grid background */}
+      <pattern id="nn-grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.3" opacity="0.08" />
+      </pattern>
+      <rect width="520" height="400" fill="url(#nn-grid)" />
+
+      {/* Connections */}
+      {connections.map(([from, to], i) => (
+        <line
+          key={i}
+          x1={nodes[from].x} y1={nodes[from].y}
+          x2={nodes[to].x} y2={nodes[to].y}
+          stroke="url(#nn-edge)"
+          strokeWidth="1"
+        />
+      ))}
+
+      {/* Animated pulse on select connections */}
+      {[[0,4],[1,5],[2,6],[4,7],[5,8],[6,9],[7,10],[9,11]].map(([from, to], i) => (
+        <circle key={`pulse-${i}`} r="2" fill="#5e6ad2" opacity="0.7">
+          <animateMotion
+            dur={`${1.8 + i * 0.3}s`}
+            repeatCount="indefinite"
+            begin={`${i * 0.4}s`}
+          >
+            <mpath href={`#path-${from}-${to}-${i}`} />
+          </animateMotion>
+        </circle>
+      ))}
+
+      {/* Nodes */}
+      {nodes.map((node, i) => (
+        <g key={i}>
+          <circle cx={node.x} cy={node.y} r="10" fill="url(#nn-node-glow)" />
+          <circle
+            cx={node.x} cy={node.y} r="6"
+            fill="white"
+            stroke="#5e6ad2"
+            strokeWidth="1.5"
+            className="dark:fill-[#0f1011]"
+          />
+          {/* Animated pulse for output nodes */}
+          {i >= 10 && (
+            <circle cx={node.x} cy={node.y} r="6" fill="none" stroke="#5e6ad2" strokeWidth="1">
+              <animate attributeName="r" values="6;14;6" dur="2.5s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.6;0;0.6" dur="2.5s" repeatCount="indefinite" />
+            </circle>
+          )}
+        </g>
+      ))}
+
+      {/* Input labels */}
+      {inputLabels.map((label, i) => (
+        <text key={label} x="18" y={nodes[i].y + 4}
+          fontSize="9" fontFamily="monospace" fontWeight="500"
+          fill="currentColor" opacity="0.5" textAnchor="middle"
+        >
+          {label}
+        </text>
+      ))}
+
+      {/* Output labels */}
+      {outputLabels.map((label, i) => (
+        <text key={label} x="502" y={nodes[10 + i].y + 4}
+          fontSize="9" fontFamily="monospace" fontWeight="600"
+          fill="#5e6ad2" textAnchor="middle"
+        >
+          {label}
+        </text>
+      ))}
+
+      {/* Center label */}
+      <text x="260" y="390" fontSize="8" fontFamily="monospace"
+        fill="currentColor" opacity="0.3" textAnchor="middle">
+        NEURON CONTEXT ENGINE
+      </text>
+    </svg>
+  );
+}
+
+// ── Horizontal benchmark bar ──────────────────────────────────────────────────
+
+function BenchmarkBar({ label, value, max, color, isTop }: {
+  label: string; value: number; max: number; color: string; isTop: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "0px 0px -60px 0px" });
+
+  return (
+    <div ref={ref} className="flex items-center gap-4">
+      <div className={`flex items-center gap-2 w-36 shrink-0 ${isTop ? "font-semibold" : ""}`}>
+        {isTop && (
+          <span className="grid size-5 place-items-center rounded bg-indigo text-white text-[9px] font-bold shrink-0">N</span>
+        )}
+        <span className={`text-sm ${isTop ? "text-foreground" : "text-muted-foreground"}`}>
+          {label}
+        </span>
+      </div>
+      <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: color }}
+          initial={{ width: 0 }}
+          animate={inView ? { width: `${(value / max) * 100}%` } : { width: 0 }}
+          transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
+        />
+      </div>
+      <span className={`text-sm tabular-nums w-12 text-right ${isTop ? "font-bold text-foreground" : "text-muted-foreground"}`}>
+        {value}%
+      </span>
+    </div>
+  );
+}
+
+// ── Integration logo chip ─────────────────────────────────────────────────────
+
+function LogoChip({ icon: Icon, name, color }: { icon: React.FC<React.SVGProps<SVGSVGElement>>; name: string; color: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-border bg-white dark:bg-card px-4 py-2.5 shadow-soft">
+      <Icon className="size-5 shrink-0" style={{ color }} />
+      <span className="text-sm font-medium text-foreground">{name}</span>
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   const router = useRouter();
@@ -64,7 +330,7 @@ export default function LandingPage() {
   const [activePreset, setActivePreset] = useState(0);
   const [simText, setSimText] = useState("");
   const [simStage, setSimStage] = useState<"idle" | "typing" | "thinking" | "done">("idle");
-  const [simSources, setSimSources] = useState<typeof PRESETS[0]["sources"]>([]);
+  const [simSources, setSimSources] = useState<(typeof PRESETS)[0]["sources"]>([]);
 
   useEffect(() => {
     if (getToken()) {
@@ -74,10 +340,8 @@ export default function LandingPage() {
     }
   }, [router]);
 
-  // Simulate QA typing
   useEffect(() => {
     if (checking || simStage !== "typing") return;
-
     const fullAnswer = PRESETS[activePreset].answer;
     let index = 0;
     setSimText("");
@@ -92,70 +356,70 @@ export default function LandingPage() {
         setSimStage("done");
         setSimSources(PRESETS[activePreset].sources);
       }
-    }, 12);
-
+    }, 10);
     return () => clearInterval(interval);
   }, [checking, activePreset, simStage]);
 
   const handleSelectPreset = (idx: number) => {
     setActivePreset(idx);
     setSimStage("thinking");
-    setTimeout(() => {
-      setSimStage("typing");
-    }, 850);
+    setTimeout(() => setSimStage("typing"), 750);
   };
 
-  // Run initial simulator once checking is finished
   useEffect(() => {
-    if (!checking && simStage === "idle") {
-      handleSelectPreset(0);
-    }
+    if (!checking && simStage === "idle") handleSelectPreset(0);
   }, [checking, simStage]);
 
   if (checking) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#08090a] text-snow">
+      <div className="flex h-screen items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-4">
-          <div className="size-8 animate-spin rounded-full border-2 border-[#e4f222] border-t-transparent" />
-          <p className="text-xs text-muted-foreground tracking-widest uppercase font-mono">Initializing Brain</p>
+          <div className="size-8 animate-spin rounded-full border-2 border-indigo border-t-transparent" />
+          <p className="text-xs text-muted-foreground tracking-widest uppercase font-mono">
+            Connecting Core
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground grid-background relative">
-      {/* Matte texture overlay */}
-      <div className="matte pointer-events-none absolute inset-0 opacity-4" />
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-background/70 backdrop-blur-md">
+      {/* ── Nav ─────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <span className="grid size-7 place-items-center rounded-lg bg-obsidian text-mist font-bold text-xs ring-1 ring-white/10 shadow-depth">
-              AB
-            </span>
-            <span className="text-sm font-semibold tracking-tight">Agency AI Brain</span>
+
+          <div className="flex items-center gap-2.5">
+            {/* Neuron logo mark */}
+            <div className="grid size-8 place-items-center rounded-lg bg-foreground shadow-depth">
+              <svg viewBox="0 0 100 100" className="size-4 text-background">
+                <line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
+                <line x1="50" y1="42" x2="30" y2="22" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+                <line x1="50" y1="58" x2="30" y2="78" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+                <line x1="50" y1="42" x2="70" y2="22" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+                <line x1="50" y1="58" x2="70" y2="78" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+                <circle cx="50" cy="50" r="8" fill="currentColor" />
+              </svg>
+            </div>
+            <span className="text-sm font-bold tracking-tight font-display">Neuron</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-6 text-[13px] text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#demo" className="hover:text-foreground transition-colors">Interactive Demo</a>
-            <a href="#integrations" className="hover:text-foreground transition-colors">Integrations</a>
+            <a href="#demo" className="hover:text-foreground transition-colors">Demo</a>
+            <a href="#benchmarks" className="hover:text-foreground transition-colors">Benchmarks</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <ThemeToggle className="size-8 text-muted-foreground hover:text-foreground rounded-lg" />
-            <Link 
-              href="/login"
-              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
-            >
+            <Link href="/login" className="text-[13px] text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5">
               Sign In
             </Link>
-            <Link 
+            <Link
               href="/login"
-              className="cta-lime flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-medium shadow-depth transition-all"
+              className="cta-lime flex h-8 items-center gap-1.5 rounded-lg px-3.5 text-[12px] font-semibold shadow-depth transition-all"
             >
               Get Started <ArrowRight className="size-3.5" />
             </Link>
@@ -163,408 +427,557 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative mx-auto max-w-5xl px-6 pt-16 pb-20 text-center md:pt-24 md:pb-28">
-        {/* Supporting tag */}
-        <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur-sm shadow-soft">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald opacity-75"></span>
-            <span className="relative inline-flex size-2 rounded-full bg-emerald"></span>
-          </span>
-          Connecting Slack, Gmail, and Jira In Real-time
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <section className="relative pt-16 pb-20 md:pt-24 md:pb-28">
+        {/* Dot pattern */}
+        <div className="pointer-events-none absolute inset-0 dot-pattern opacity-40" />
+        {/* Radial fade */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,transparent_60%,hsl(var(--background))_100%)]" />
+
+        <div className="relative mx-auto max-w-5xl px-6 text-center">
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-7 inline-flex items-center gap-2 rounded-full border border-border bg-white dark:bg-card px-4 py-1.5 text-[11px] font-medium text-muted-foreground shadow-soft"
+          >
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald opacity-75" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-emerald" />
+            </span>
+            Live sync: Slack · Gmail · Jira · Google Drive
+          </motion.div>
+
+          {/* Hero heading */}
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="font-display text-[3.4rem] font-bold tracking-tight text-foreground sm:text-7xl md:text-[5.5rem] lg:text-[6.25rem] leading-[0.9] max-w-4xl mx-auto"
+          >
+            The shared{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo to-[#8b95e8]">
+              memory layer
+            </span>
+            {" "}for<br className="hidden md:block" /> digital agencies
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-7 max-w-xl mx-auto text-base leading-relaxed text-muted-foreground sm:text-lg"
+          >
+            PMs waste 30 minutes per client gathering context before every status call.
+            Neuron ingests your tools and answers &quot;what&apos;s happening?&quot; in seconds.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3"
+          >
+            <Link
+              href="/login"
+              className="cta-lime flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold shadow-raised transition-all"
+            >
+              Start 14-day free trial <ArrowRight className="size-4" />
+            </Link>
+            <a
+              href="#demo"
+              className="flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-white dark:bg-card px-6 text-sm font-medium text-foreground hover:bg-muted transition-all shadow-soft"
+            >
+              Try interactive demo <ChevronRight className="size-4 text-muted-foreground" />
+            </a>
+          </motion.div>
+
+          {/* Social proof */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="mt-5 text-xs text-muted-foreground/60"
+          >
+            Trusted by high-performing agency teams · No credit card required
+          </motion.p>
         </div>
 
-        {/* Title */}
-        <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight sm:text-6xl md:leading-[1.1] text-foreground">
-          The shared memory layer for <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo to-cyan">digital agencies</span>
-        </h1>
+        {/* Hero illustration */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="relative mx-auto mt-14 max-w-4xl px-6"
+        >
+          <div className="relative rounded-2xl overflow-hidden border border-border shadow-float bg-card/60">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(94,106,210,0.08),transparent_70%)] pointer-events-none" />
+            <div className="p-1 md:p-2">
+              <IntegrationsOrbit />
+            </div>
+          </div>
+        </motion.div>
+      </section>
 
-        {/* Subtitle */}
-        <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground sm:text-lg">
-          PMs waste 30 minutes per client gathering context before status calls. Agency AI Brain ingests client streams, building a unified brain index that answers questions in seconds.
+      {/* ── Marquee — integration logos ───────────────────────────────────── */}
+      <section className="border-y border-border/50 bg-muted/30 py-8">
+        <p className="text-center text-[10.5px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 mb-6">
+          Plugs into the tools your team already uses
         </p>
+        <Marquee className="[--duration:28s]" gap="3rem">
+          <LogoChip icon={SlackIcon} name="Slack" color="#36c5f0" />
+          <LogoChip icon={GmailIcon} name="Gmail" color="#fc413d" />
+          <LogoChip icon={JiraIcon} name="Jira" color="#0052cc" />
+          <LogoChip icon={DriveIcon} name="Google Drive" color="#0ebc5f" />
+          <LogoChip icon={SlackIcon} name="Slack channels" color="#36c5f0" />
+          <LogoChip icon={GmailIcon} name="Outlook" color="#fc413d" />
+          <LogoChip icon={JiraIcon} name="Linear" color="#5e6ad2" />
+          <LogoChip icon={DriveIcon} name="Notion" color="#000000" />
+        </Marquee>
+      </section>
 
-        {/* CTAs */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-          <Link 
-            href="/login"
-            className="cta-lime flex h-10 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-5 text-sm font-medium shadow-raised transition-all"
-          >
-            Start 14-day free trial <ArrowRight className="size-4" />
-          </Link>
-          <a 
-            href="#demo"
-            className="ring-hairline flex h-10 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-card/30 px-5 text-sm font-medium text-foreground hover:bg-card/70 transition-all shadow-soft"
-          >
-            Try Interactive Demo
-          </a>
-        </div>
-
-        {/* Mockup Dashboard Preview */}
-        <div className="mt-16 md:mt-20 relative mx-auto max-w-4xl rounded-2xl border border-white/[0.04] bg-[#0c0d0e]/60 p-2 shadow-depth">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-transparent to-indigo/5 blur-3xl rounded-3xl" />
-          <div className="ring-hairline overflow-hidden rounded-[14px] bg-[#141618] text-left shadow-float">
-            {/* Header bar */}
-            <div className="flex h-11 items-center justify-between border-b border-white/[0.04] bg-[#101214] px-4">
-              <div className="flex items-center gap-1.5">
-                <span className="size-3 rounded-full bg-white/[0.06]" />
-                <span className="size-3 rounded-full bg-white/[0.06]" />
-                <span className="size-3 rounded-full bg-white/[0.06]" />
-                <span className="ml-2 text-[11px] font-mono text-muted-foreground/50">agency-ai-brain.com/clients/acme</span>
-              </div>
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-muted-foreground/60">LIVE CONTEXT</span>
-            </div>
-
-            {/* Content body layout */}
-            <div className="flex h-[320px] divide-x divide-white/[0.03]">
-              {/* Sidebar list mock */}
-              <div className="hidden sm:flex w-44 flex-col bg-[#101214]/60 p-3">
-                <div className="mb-4 h-6 w-20 rounded bg-white/5" />
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 rounded bg-white/[0.04] p-1.5 ring-1 ring-white/10">
-                    <span className="size-4 rounded bg-indigo/30 text-[9px] font-bold text-indigo flex items-center justify-center">A</span>
-                    <div className="h-2 w-16 rounded bg-white/30" />
-                  </div>
-                  <div className="flex items-center gap-2 p-1.5">
-                    <span className="size-4 rounded bg-white/5 text-[9px] text-muted-foreground flex items-center justify-center">V</span>
-                    <div className="h-2 w-14 rounded bg-white/20" />
-                  </div>
-                  <div className="flex items-center gap-2 p-1.5">
-                    <span className="size-4 rounded bg-white/5 text-[9px] text-muted-foreground flex items-center justify-center">C</span>
-                    <div className="h-2 w-20 rounded bg-white/20" />
-                  </div>
+      {/* ── Stats ─────────────────────────────────────────────────────────── */}
+      <section className="py-16 border-b border-border/40">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+            {STATS.map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="text-center"
+              >
+                <div className="font-display text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
+                  <NumberTicker value={stat.value} delay={i * 0.2} />
+                  <span className="text-indigo">{stat.suffix}</span>
                 </div>
-              </div>
-
-              {/* Chat section mock */}
-              <div className="flex-1 flex flex-col bg-background/40 p-4 justify-between">
-                <div className="space-y-4">
-                  {/* Status header */}
-                  <div className="border-b border-white/[0.04] pb-3">
-                    <p className="text-[13px] font-semibold text-foreground">Acme Corp · Summary</p>
-                    <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                      Designs are complete and awaiting sign-off. Dev team is currently integrating the authentication schema. Rahul identified a potential bottleneck with Google client IDs.
-                    </p>
-                  </div>
-                  {/* Mock Q&A turn */}
-                  <div className="space-y-2">
-                    <div className="flex justify-end">
-                      <div className="rounded-xl rounded-br-none bg-foreground px-3 py-1.5 text-xs text-background font-medium">
-                        What did we promise Acme by Friday?
-                      </div>
-                    </div>
-                    <div className="flex justify-start">
-                      <div className="max-w-[90%] space-y-2">
-                        <div className="rounded-xl rounded-bl-none bg-card p-3 text-[12px] leading-relaxed ring-1 ring-white/10">
-                          Based on discussions, you promised Acme Corp the **final mobile Figma mockups** by Friday. John confirmed they are ready.
-                          <div className="mt-2 flex gap-1.5">
-                            <span className="inline-block rounded bg-muted px-1.5 py-0.5 text-[9.5px] text-muted-foreground">Slack · 2h ago</span>
-                            <span className="inline-block rounded bg-muted px-1.5 py-0.5 text-[9.5px] text-muted-foreground">Gmail · Yesterday</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Composer mock */}
-                <div className="rounded-lg bg-card/80 p-2 border border-white/[0.06] flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Ask anything about Acme...</span>
-                  <span className="size-6 rounded-full bg-white/10 flex items-center justify-center text-xs text-muted-foreground">↑</span>
-                </div>
-              </div>
-            </div>
+                <p className="mt-2 text-sm text-muted-foreground">{stat.label}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Brand trust logos */}
-      <section className="border-y border-border/40 bg-card/25 py-8 backdrop-blur-sm">
-        <div className="mx-auto max-w-6xl px-6 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">Used by high-performing agency teams</p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
-            {BRAND_LOGOS.map((logo) => {
-              const Icon = logo.icon;
-              return (
-                <div key={logo.name} className="flex items-center gap-1.5 opacity-40 hover:opacity-75 transition-opacity">
-                  <Icon className="size-4 text-foreground" />
-                  <span className="text-[14px] font-bold tracking-tight lowercase">{logo.name}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive QA Demo Section */}
+      {/* ── Interactive Q&A Demo ───────────────────────────────────────────── */}
       <section id="demo" className="mx-auto max-w-5xl px-6 py-20 md:py-24">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">See client intelligence in action</h2>
-          <p className="mt-3 text-sm text-muted-foreground max-w-lg mx-auto">
-            Click one of the agency-inspired questions below to test how the RAG context engine fetches relevant facts and writes cited status updates.
+        <div className="text-center mb-10">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
+            Interactive demo
+          </p>
+          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
+            See Neuron in action
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground max-w-md mx-auto">
+            Click a real-world agency scenario below to see how the RAG engine retrieves and cites relevant context.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
+        {/* Preset selector */}
+        <div className="mt-8 grid gap-3 md:grid-cols-3">
           {PRESETS.map((preset, idx) => (
             <button
               key={idx}
               onClick={() => handleSelectPreset(idx)}
-              className={`text-left p-4 rounded-xl border transition-all ${
+              className={`text-left p-4 rounded-xl border transition-all text-sm ${
                 activePreset === idx
-                  ? "bg-card border-white/15 shadow-raised ring-1 ring-white/10"
-                  : "bg-card/30 border-border/60 hover:bg-card/60 hover:border-border"
+                  ? "bg-white dark:bg-card border-indigo/40 shadow-raised ring-1 ring-indigo/10"
+                  : "bg-muted/30 border-border/60 hover:bg-white dark:hover:bg-card hover:border-border hover:shadow-soft"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-muted-foreground tracking-wider uppercase">Scenario {idx + 1}</span>
-                {activePreset === idx && <span className="size-1.5 rounded-full bg-[#e4f222]" />}
+                <span className="text-[10px] font-mono text-muted-foreground tracking-wider uppercase">
+                  Scenario {idx + 1}
+                </span>
+                {activePreset === idx && (
+                  <span className="size-1.5 rounded-full bg-indigo" />
+                )}
               </div>
-              <p className="text-[13px] font-medium text-foreground">{preset.question}</p>
+              <p className="font-medium text-foreground leading-snug">{preset.question}</p>
             </button>
           ))}
         </div>
 
-        {/* Demo Terminal */}
-        <div className="mt-8 rounded-xl border border-white/[0.05] bg-[#0c0d0e]/95 p-5 shadow-raised min-h-[220px] flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-white/[0.04] pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-emerald" />
-                <span className="text-[11.5px] font-mono text-muted-foreground">RAG Engine Core</span>
-              </div>
-              <span className="text-[10.5px] font-mono text-muted-foreground/40">Query latency: {simStage === "thinking" ? "Calculating..." : "1.2s"}</span>
-            </div>
-
-            {/* Question line */}
-            <div className="flex gap-2.5 items-start">
-              <span className="text-xs font-mono text-muted-foreground/60 mt-0.5">PM:</span>
-              <p className="text-[13px] font-semibold text-[#8b95e8]">{PRESETS[activePreset].question}</p>
-            </div>
-
-            {/* Answer line */}
-            <div className="flex gap-2.5 items-start">
-              <span className="text-xs font-mono text-[#e4f222] mt-0.5">Brain:</span>
-              <div className="text-[13.5px] leading-relaxed text-snow min-h-[40px] flex-1">
-                {simStage === "thinking" ? (
-                  <div className="flex items-center gap-1.5 text-muted-foreground/80">
-                    <span className="size-1 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="size-1 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="size-1 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "300ms" }} />
-                    <span className="text-xs ml-1">Searching pgvector index & re-ranking by recency...</span>
-                  </div>
-                ) : (
-                  <p>{simText}</p>
-                )}
-              </div>
-            </div>
+        {/* Terminal */}
+        <div className="mt-6 rounded-xl border border-border overflow-hidden shadow-raised">
+          {/* Terminal chrome */}
+          <div className="flex items-center gap-1.5 bg-[#1a1b1e] px-4 py-2.5 border-b border-white/[0.06]">
+            <span className="size-3 rounded-full bg-[#ff5f57]" />
+            <span className="size-3 rounded-full bg-[#febc2e]" />
+            <span className="size-3 rounded-full bg-[#28c840]" />
+            <span className="ml-3 text-[11px] font-mono text-white/40">neuron · rag-engine</span>
+            <span className="ml-auto text-[10px] font-mono text-white/20">
+              {simStage === "thinking" ? "latency: …" : "latency: 1.2s"}
+            </span>
           </div>
 
-          {/* Sources line */}
-          <div className="mt-6 border-t border-white/[0.03] pt-3 flex flex-wrap gap-2 items-center">
-            <span className="text-[10.5px] font-mono text-muted-foreground/50">Citations:</span>
-            {simStage === "done" && simSources.map((source, j) => (
-              <span
-                key={j}
-                title={source.text}
-                className="inline-flex items-center gap-1 rounded bg-white/[0.05] px-2 py-0.5 text-[10.5px] font-mono text-[#8a8f98] border border-white/[0.03] hover:border-white/10 transition-colors cursor-help"
-              >
-                {source.type === "slack" && <MessageSquare className="size-2.5 text-[#5e6ad2]" />}
-                {source.type === "gmail" && <Mail className="size-2.5 text-red-400" />}
-                {source.type === "jira" && <Sparkles className="size-2.5 text-blue-400" />}
-                {source.label}
-              </span>
-            ))}
-            {simStage !== "done" && <span className="text-[11px] text-muted-foreground/30 italic">Awaiting completion</span>}
+          {/* Terminal body */}
+          <div className="bg-[#0f1012] p-5 min-h-[220px] flex flex-col justify-between">
+            <div className="space-y-4">
+              {/* Question */}
+              <div className="flex gap-2.5">
+                <span className="text-xs font-mono text-white/40 mt-0.5 shrink-0">PM &gt;</span>
+                <p className="text-[13px] font-semibold text-[#8b95e8]">
+                  {PRESETS[activePreset].question}
+                </p>
+              </div>
+
+              {/* Answer */}
+              <div className="flex gap-2.5">
+                <span className="text-xs font-mono text-[#d3e017] mt-0.5 shrink-0">AI &gt;</span>
+                <div className="text-[13px] leading-relaxed text-white/85 min-h-[40px] flex-1">
+                  {simStage === "thinking" ? (
+                    <div className="flex items-center gap-1.5 text-white/40">
+                      <span className="size-1 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="size-1 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="size-1 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                      <span className="text-xs ml-1">Searching pgvector index…</span>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{simText}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Citations */}
+            <div className="mt-5 border-t border-white/[0.05] pt-3 flex flex-wrap gap-2 items-center">
+              <span className="text-[10px] font-mono text-white/30">citations:</span>
+              {simStage === "done" &&
+                simSources.map((source, j) => (
+                  <span
+                    key={j}
+                    title={source.text}
+                    className="inline-flex items-center gap-1.5 rounded bg-white/[0.06] px-2 py-0.5 text-[10.5px] font-mono text-white/55 border border-white/[0.05] hover:border-white/10 transition-colors cursor-help"
+                  >
+                    {source.type === "slack" && (
+                      <MessageSquare className="size-2.5 text-[#5e6ad2]" />
+                    )}
+                    {source.type === "gmail" && (
+                      <Mail className="size-2.5 text-red-400" />
+                    )}
+                    {source.type === "jira" && (
+                      <Sparkles className="size-2.5 text-blue-400" />
+                    )}
+                    {source.label}
+                  </span>
+                ))}
+              {simStage !== "done" && (
+                <span className="text-[11px] text-white/20 italic">Awaiting completion…</span>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Bento Grid Features Section */}
+      {/* ── Features Bento ─────────────────────────────────────────────────── */}
       <section id="features" className="mx-auto max-w-5xl px-6 py-20 border-t border-border/40">
         <div className="text-center mb-14">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">Built for agency operations</h2>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
+            Features
+          </p>
+          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
+            Built for agency operations
+          </h2>
           <p className="mt-3 text-sm text-muted-foreground max-w-lg mx-auto">
             Zero-configuration RAG pipeline that hooks directly into your team&apos;s existing software.
           </p>
         </div>
 
-        {/* Bento Grid */}
+        {/* Feature grid */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+          {FEATURES.map((feature, i) => {
+            const Icon = feature.icon;
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: (i % 3) * 0.08 }}
+                className="group p-5 rounded-2xl border border-border bg-white dark:bg-card hover:shadow-raised transition-all duration-200 hover:-translate-y-0.5"
+              >
+                <div className={`mb-4 inline-flex size-10 items-center justify-center rounded-xl ${feature.accent}`}>
+                  <Icon className={`size-5 ${feature.iconColor}`} />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground mb-1.5">{feature.title}</h3>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">{feature.description}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Bento row — big illustrations */}
         <div className="grid gap-4 md:grid-cols-3">
-          {/* Card 1: Slack */}
-          <div className="glass-card md:col-span-2 p-6 rounded-xl flex flex-col justify-between min-h-[200px]">
+          {/* Integrations orbit — spans 2 */}
+          <div className="glass-card md:col-span-2 p-6 rounded-2xl flex flex-col justify-between min-h-[380px]">
             <div>
-              <div className="size-8 rounded-lg bg-[#5e6ad2]/15 text-[#5e6ad2] flex items-center justify-center mb-4">
-                <MessageSquare className="size-4" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">Slack Channels & Threads Ingestion</h3>
-              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                Connect channels dedicated to specific clients. Our worker fetches history, handles message threads, resolves real user names, and indexes chunks dynamically into vector storage.
+              <h3 className="text-sm font-semibold text-foreground mb-1">
+                Multi-source Integration
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+                Connect your workspace. Neuron handles OAuth, background threads, and merges
+                channels, emails, and tickets into one shared brain.
               </p>
+            </div>
+            <div className="flex-1 flex items-center justify-center mt-4">
+              <div className="w-full">
+                <IntegrationsOrbit />
+              </div>
             </div>
             <div className="mt-4 flex gap-1.5">
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">Auto-Dedupe</span>
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">7-Day Backfill</span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">Auto-Dedupe</span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">7-Day Backfill</span>
             </div>
           </div>
 
-          {/* Card 2: Gmail */}
-          <div className="glass-card p-6 rounded-xl flex flex-col justify-between min-h-[200px]">
+          {/* Brain halftone */}
+          <div className="glass-card p-6 rounded-2xl flex flex-col justify-between min-h-[380px]">
             <div>
-              <div className="size-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center mb-4">
-                <Mail className="size-4" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">Signal-Matched Email Sync</h3>
-              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                Matches client records using email domain rules and custom contact email strings. Automatically extracts plain text bodies and removes HTML clutter.
+              <h3 className="text-sm font-semibold text-foreground mb-1">
+                Neural Context Index
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Maps semantic relationships between clients, people, topics, and due dates —
+                updating on every Slack message or Jira comment.
               </p>
+            </div>
+            <div className="flex-1 flex items-center justify-center mt-4">
+              <BrainHalftone />
             </div>
             <div className="mt-4">
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">Domain Rules</span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">Semantic Vectors</span>
             </div>
           </div>
 
-          {/* Card 3: Jira */}
-          <div className="glass-card p-6 rounded-xl flex flex-col justify-between min-h-[200px]">
+          {/* Recall chart — spans 2 */}
+          <div className="glass-card md:col-span-2 p-6 rounded-2xl flex flex-col justify-between min-h-[320px]">
             <div>
-              <div className="size-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center mb-4">
-                <Sparkles className="size-4" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">Jira Ticket & Comments Track</h3>
-              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                Imports specific project key issues. Maps issue status, due dates, assignees, and comments to allow granular question-answering about project blocks.
+              <h3 className="text-sm font-semibold text-foreground mb-1">
+                Time-Decay RAG Retrieval
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+                Traditional search returns stale results. Neuron balances semantic match with a
+                recency-decay formula — current facts in 3 seconds.
               </p>
             </div>
-            <div className="mt-4">
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">OAuth 3LO Flow</span>
-            </div>
-          </div>
-
-          {/* Card 4: RAG Engine */}
-          <div className="glass-card md:col-span-2 p-6 rounded-xl flex flex-col justify-between min-h-[200px]">
-            <div>
-              <div className="size-8 rounded-lg bg-[#e4f222]/10 text-[#e4f222] flex items-center justify-center mb-4">
-                <Search className="size-4" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">Hybrid Time-Decay Retrieval</h3>
-              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                Replaces standard semantic search. Uses `score = 0.6 * similarity + 0.4 * recency_decay` to ensure recent messages are prioritized while preserving older critical tickets. Limits sources to prevent active chats from crowding out facts.
-              </p>
+            <div className="flex-1 flex items-center justify-center mt-4">
+              <RecallChart />
             </div>
             <div className="mt-4 flex gap-1.5">
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">pgvector HNSW</span>
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">Source-Cap Limit</span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">pgvector HNSW</span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">Recency Decay</span>
             </div>
           </div>
 
-          {/* Card 5: Alerts */}
-          <div className="glass-card p-6 rounded-xl flex flex-col justify-between min-h-[200px]">
+          {/* Server isometric */}
+          <div className="glass-card p-6 rounded-2xl flex flex-col justify-between min-h-[320px]">
             <div>
-              <div className="size-8 rounded-lg bg-emerald/10 text-emerald flex items-center justify-center mb-4">
-                <Clock className="size-4" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">Proactive Alert Engine</h3>
-              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                Checks for silent clients (5+ days without activity), stale tickets (no update in 48 hours), and alerts PMs on impending deadlines automatically.
+              <h3 className="text-sm font-semibold text-foreground mb-1">
+                Google Drive & Docs Sync
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Parses documents, PDFs, and slide decks in real-time, mapping contents to
+                the matching client record.
               </p>
+            </div>
+            <div className="flex-1 flex items-center justify-center mt-4">
+              <ServerIsometric />
             </div>
             <div className="mt-4">
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">Daily Cron Beat</span>
-            </div>
-          </div>
-
-          {/* Card 6: Google Drive */}
-          <div className="glass-card md:col-span-2 p-6 rounded-xl flex flex-col justify-between min-h-[200px]">
-            <div>
-              <div className="size-8 rounded-lg bg-yellow-500/10 text-yellow-400 flex items-center justify-center mb-4">
-                <FolderDot className="size-4" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">Google Drive File Ingestion <span className="ml-2 rounded-full bg-yellow-400/15 px-2 py-0.5 text-[10px] text-yellow-400">Soon</span></h3>
-              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                Connect folders sharing documents, PDFs, and slide decks. Automatically parses document contents using semantic chunking rules to link text structures with client records.
-              </p>
-            </div>
-            <div className="mt-4 flex gap-1.5">
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">LlamaIndex Parse</span>
-              <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] font-mono text-[#8a8f98]">PDF & Docs</span>
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">LlamaIndex Parsing</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="mx-auto max-w-5xl px-6 py-20 border-t border-border/40 text-center">
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-foreground">Flat agency pricing</h2>
-          <p className="mt-3 text-sm text-muted-foreground max-w-sm mx-auto">
+      {/* ── Neural network ASCII art section ─────────────────────────────── */}
+      <section className="border-t border-border/40 bg-muted/20 py-20">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-4">
+                How it works
+              </p>
+              <h2 className="font-display text-3xl font-bold tracking-tight text-foreground mb-6">
+                Raw signals → unified intelligence
+              </h2>
+              <div className="space-y-5">
+                {[
+                  {
+                    step: "01",
+                    title: "Connect your sources",
+                    body: "Authorize Slack, Gmail, Jira, and Drive in under 2 minutes. Neuron backfills the last 7 days automatically.",
+                  },
+                  {
+                    step: "02",
+                    title: "Context engine indexes everything",
+                    body: "Each message, ticket, and document is chunked, embedded, and stored in a per-client pgvector namespace.",
+                  },
+                  {
+                    step: "03",
+                    title: "Ask anything, get cited answers",
+                    body: "Your PM types a question in plain English. Neuron retrieves, re-ranks, and synthesizes a cited response in seconds.",
+                  },
+                ].map((item) => (
+                  <div key={item.step} className="flex gap-4">
+                    <span className="font-display text-3xl font-bold text-border leading-none shrink-0 w-10 text-right">
+                      {item.step}
+                    </span>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-0.5">{item.title}</h3>
+                      <p className="text-[13px] text-muted-foreground leading-relaxed">{item.body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="relative h-72 md:h-80 rounded-2xl border border-border bg-card overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(94,106,210,0.05),transparent_70%)] pointer-events-none" />
+              <NeuralNetworkSVG />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SOTA Benchmarks ───────────────────────────────────────────────── */}
+      <section id="benchmarks" className="mx-auto max-w-5xl px-6 py-20 border-t border-border/40">
+        <div className="grid md:grid-cols-2 gap-14 items-start">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-4">
+              Benchmarks
+            </p>
+            <h2 className="font-display text-3xl font-bold tracking-tight text-foreground mb-4">
+              Faster context<br />than any alternative
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-xs">
+              Time-to-context score comparing Neuron against manual prep and generic AI tools
+              on real agency workflows.
+            </p>
+            <div className="space-y-4">
+              {[
+                { label: "Neuron", value: 97, max: 100, color: "#5e6ad2", isTop: true },
+                { label: "Notion AI", value: 68, max: 100, color: "#94a3b8", isTop: false },
+                { label: "ChatGPT", value: 54, max: 100, color: "#94a3b8", isTop: false },
+                { label: "Manual prep", value: 22, max: 100, color: "#94a3b8", isTop: false },
+              ].map((bar) => (
+                <BenchmarkBar key={bar.label} {...bar} />
+              ))}
+            </div>
+          </div>
+
+          {/* Interactive benchmark tabs */}
+          <div className="mt-2">
+            <BenchmarkTabs />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ───────────────────────────────────────────────────────── */}
+      <section id="pricing" className="border-t border-border/40 bg-muted/20 py-20">
+        <div className="mx-auto max-w-5xl px-6 text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
+            Pricing
+          </p>
+          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-foreground mb-3">
+            Flat agency pricing
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-12">
             No seat taxes. Scale your clients and developers without worrying about costs.
           </p>
-        </div>
 
-        <div className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-card p-8 shadow-raised text-left relative overflow-hidden">
-          <div className="absolute top-0 right-0 rounded-bl-lg bg-white/5 px-3 py-1 text-[10px] font-semibold text-muted-foreground tracking-wider uppercase">Flat Rate</div>
-          
-          <h3 className="text-sm font-semibold text-muted-foreground tracking-wider uppercase">Agency Plan</h3>
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-4xl font-extrabold text-foreground">₹12,000</span>
-            <span className="text-xs text-muted-foreground">/ month</span>
-          </div>
-          <p className="mt-2.5 text-xs text-muted-foreground">
-            Billed monthly. Cancel anytime.
-          </p>
+          <div className="mx-auto max-w-sm rounded-2xl border border-border bg-white dark:bg-card p-8 shadow-raised text-left relative overflow-hidden">
+            {/* Top ribbon */}
+            <div className="absolute top-0 right-0 rounded-bl-xl bg-indigo px-3 py-1 text-[10px] font-bold text-white tracking-wider uppercase">
+              Flat Rate
+            </div>
 
-          <ul className="mt-6 space-y-3 border-t border-border/60 pt-6 text-[13px] text-foreground">
-            <li className="flex items-center gap-2">
-              <CheckCircle className="size-4 text-emerald shrink-0" />
-              <span>Unlimited seats for your PMs & Devs</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="size-4 text-emerald shrink-0" />
-              <span>Up to 15 active client brain records</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="size-4 text-emerald shrink-0" />
-              <span>Slack, Gmail & Jira integrations</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="size-4 text-emerald shrink-0" />
-              <span>Ask Bar (RAG Q&A) & Attention Feed</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="size-4 text-emerald shrink-0" />
-              <span>Postgres RLS Security</span>
-            </li>
-          </ul>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+              Agency Plan
+            </p>
+            <div className="flex items-baseline gap-1">
+              <span className="font-display text-5xl font-bold text-foreground">₹12,000</span>
+              <span className="text-sm text-muted-foreground">/ month</span>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">Billed monthly. Cancel anytime.</p>
 
-          <div className="mt-8">
-            <Link 
-              href="/login"
-              className="cta-lime flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium shadow-depth transition-all"
-            >
-              Start 14-day free trial
-            </Link>
-            <p className="mt-3 text-center text-[10.5px] text-muted-foreground/60">No credit card required for setup</p>
+            <ul className="mt-6 space-y-3 border-t border-border pt-6 text-[13px] text-foreground">
+              {[
+                "Unlimited seats for PMs & Devs",
+                "Up to 15 active client brain records",
+                "Slack, Gmail & Jira integrations",
+                "Ask Bar (RAG Q&A) & Attention Feed",
+                "Postgres RLS Security",
+                "14-day free trial, no card required",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2.5">
+                  <CheckCircle className="size-4 text-emerald shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-8">
+              <Link
+                href="/login"
+                className="cta-lime flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold shadow-depth transition-all"
+              >
+                Start 14-day free trial
+              </Link>
+              <p className="mt-3 text-center text-[11px] text-muted-foreground/60">
+                No credit card required for setup
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/40 bg-card/10 py-10 backdrop-blur-sm">
+      {/* ── CTA Banner ────────────────────────────────────────────────────── */}
+      <section className="border-t border-border/40 bg-foreground py-16">
+        <div className="mx-auto max-w-3xl px-6 text-center">
+          <h2 className="font-display text-3xl font-bold tracking-tight text-background sm:text-4xl mb-4">
+            Stop prepping. Start knowing.
+          </h2>
+          <p className="text-sm text-background/60 max-w-md mx-auto mb-8">
+            Join agency teams who&apos;ve eliminated pre-call context gathering completely.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-background px-8 text-sm font-semibold text-foreground shadow-depth hover:bg-background/90 transition-all"
+          >
+            Get started free <ArrowRight className="size-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-border/40 bg-background py-10">
         <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <span className="grid size-6 place-items-center rounded bg-obsidian text-mist font-bold text-[10px] ring-1 ring-white/5">
-              AB
-            </span>
-            <span className="text-xs font-semibold text-muted-foreground tracking-tight">Agency AI Brain</span>
+          <div className="flex items-center gap-2.5">
+            <div className="grid size-6 place-items-center rounded bg-foreground">
+              <svg viewBox="0 0 100 100" className="size-3.5 text-background">
+                <line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" strokeWidth="14" strokeLinecap="round" />
+                <line x1="50" y1="42" x2="30" y2="22" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
+                <line x1="50" y1="58" x2="30" y2="78" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
+                <line x1="50" y1="42" x2="70" y2="22" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
+                <line x1="50" y1="58" x2="70" y2="78" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
+                <circle cx="50" cy="50" r="10" fill="currentColor" />
+              </svg>
+            </div>
+            <span className="text-xs font-bold text-muted-foreground tracking-tight font-display">Neuron</span>
           </div>
 
           <p className="text-[11px] text-muted-foreground/60">
-            &copy; {new Date().getFullYear()} Agency AI Brain. In compliance with data isolation frameworks.
+            &copy; {new Date().getFullYear()} Neuron. In compliance with data isolation frameworks.
           </p>
 
           <div className="flex items-center gap-4 text-xs text-muted-foreground/75">
-            <a href="#" className="hover:text-foreground">Terms</a>
-            <a href="#" className="hover:text-foreground">Privacy</a>
+            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
           </div>
         </div>
       </footer>
