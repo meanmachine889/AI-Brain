@@ -18,7 +18,7 @@ import {
   Shield,
   ChevronRight,
 } from "lucide-react";
-import { motion, useInView } from "motion/react";
+import { motion, useInView, useScroll, useTransform } from "motion/react";
 import { useRef } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -27,6 +27,7 @@ import { BrainHalftone } from "@/components/illustrations/brain-halftone";
 import { RecallChart } from "@/components/illustrations/recall-chart";
 import { ServerIsometric } from "@/components/illustrations/server-isometric";
 import { BenchmarkTabs } from "@/components/illustrations/benchmark-tabs";
+import { MacbookScroll } from "@/components/illustrations/macbook-scroll";
 
 import {
   SlackIcon,
@@ -36,6 +37,38 @@ import {
 } from "@/components/brand-icons";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { Marquee } from "@/components/ui/marquee";
+
+// ── Neuron SVG logomark (no bounding box) ────────────────────────────────────
+function NeuronMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 28 28" fill="none" className={className} aria-hidden>
+      <line x1="14" y1="3" x2="14" y2="25" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <line x1="14" y1="9.5" x2="6.5" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line x1="14" y1="9.5" x2="21.5" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line x1="14" y1="18.5" x2="6.5" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line x1="14" y1="18.5" x2="21.5" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="14" cy="3" r="1.8" fill="currentColor" />
+      <circle cx="14" cy="25" r="1.8" fill="currentColor" />
+      <circle cx="6.5" cy="3" r="1.8" fill="currentColor" />
+      <circle cx="21.5" cy="3" r="1.8" fill="currentColor" />
+      <circle cx="6.5" cy="25" r="1.8" fill="currentColor" />
+      <circle cx="21.5" cy="25" r="1.8" fill="currentColor" />
+      <circle cx="14" cy="14" r="2.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+// ── Hero word-reveal animation helpers ───────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const heroContainer: any = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.15 } },
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const heroWord: any = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "circOut" } },
+};
 
 // ── Q&A demo presets ────────────────────────────────────────────────────────
 
@@ -390,18 +423,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
 
-          <div className="flex items-center gap-2.5">
-            {/* Neuron logo mark */}
-            <div className="grid size-8 place-items-center rounded-lg bg-foreground shadow-depth">
-              <svg viewBox="0 0 100 100" className="size-4 text-background">
-                <line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
-                <line x1="50" y1="42" x2="30" y2="22" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-                <line x1="50" y1="58" x2="30" y2="78" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-                <line x1="50" y1="42" x2="70" y2="22" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-                <line x1="50" y1="58" x2="70" y2="78" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-                <circle cx="50" cy="50" r="8" fill="currentColor" />
-              </svg>
-            </div>
+          <div className="flex items-center gap-2">
+            <NeuronMark className="size-7 text-foreground" />
             <span className="text-sm font-bold tracking-tight font-display">Neuron</span>
           </div>
 
@@ -428,18 +451,24 @@ export default function LandingPage() {
       </header>
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative pt-16 pb-20 md:pt-24 md:pb-28">
-        {/* Dot pattern */}
-        <div className="pointer-events-none absolute inset-0 dot-pattern opacity-40" />
-        {/* Radial fade */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,transparent_60%,hsl(var(--background))_100%)]" />
+      <section className="relative flex items-center justify-center" style={{ minHeight: "calc(100vh - 3.5rem)" }}>
+        {/* Dot grid — fades at edges */}
+        <div
+          className="pointer-events-none absolute inset-0 dot-pattern opacity-50"
+          style={{
+            WebkitMaskImage: "radial-gradient(ellipse 90% 80% at 50% 0%, black 0%, transparent 85%)",
+            maskImage: "radial-gradient(ellipse 90% 80% at 50% 0%, black 0%, transparent 85%)",
+          }}
+        />
+        {/* Bottom gradient blend to white */}
+        <div className="pointer-events-none absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-background to-transparent" />
 
-        <div className="relative mx-auto max-w-5xl px-6 text-center">
+        <div className="relative mx-auto w-full max-w-5xl px-6 text-center py-16">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.4 }}
             className="mb-7 inline-flex items-center gap-2 rounded-full border border-border bg-white dark:bg-card px-4 py-1.5 text-[11px] font-medium text-muted-foreground shadow-soft"
           >
             <span className="relative flex size-1.5">
@@ -449,49 +478,59 @@ export default function LandingPage() {
             Live sync: Slack · Gmail · Jira · Google Drive
           </motion.div>
 
-          {/* Hero heading */}
+          {/* Hero heading — staggered word reveal */}
           <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="font-display text-[3.4rem] font-bold tracking-tight text-foreground sm:text-7xl md:text-[5.5rem] lg:text-[6.25rem] leading-[0.9] max-w-4xl mx-auto"
+            variants={heroContainer}
+            initial="hidden"
+            animate="visible"
+            className="font-display text-[3.2rem] font-bold tracking-tight text-foreground sm:text-7xl md:text-[5.25rem] lg:text-[6rem] leading-[0.88] max-w-4xl mx-auto"
           >
-            The shared{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo to-[#8b95e8]">
-              memory layer
-            </span>
-            {" "}for<br className="hidden md:block" /> digital agencies
+            {["The", "shared"].map((w) => (
+              <motion.span key={w} variants={heroWord} className="inline-block mr-[0.22em]">{w}</motion.span>
+            ))}
+            <motion.span
+              variants={heroWord}
+              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-indigo to-[#8b95e8]"
+            >
+              memory&nbsp;layer
+            </motion.span>
+            <br className="hidden md:block" />
+            {["for", "digital", "agencies"].map((w) => (
+              <motion.span key={w} variants={heroWord} className="inline-block mr-[0.22em]">{w}</motion.span>
+            ))}
           </motion.h1>
 
           {/* Subtitle */}
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.55 }}
             className="mt-7 max-w-xl mx-auto text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
             PMs waste 30 minutes per client gathering context before every status call.
             Neuron ingests your tools and answers &quot;what&apos;s happening?&quot; in seconds.
           </motion.p>
 
-          {/* CTAs */}
+          {/* CTAs — with hover animations */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
             className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3"
           >
             <Link
               href="/login"
-              className="cta-lime flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold shadow-raised transition-all"
+              className="group cta-lime flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold shadow-raised hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150"
             >
-              Start 14-day free trial <ArrowRight className="size-4" />
+              Start 14-day free trial
+              <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
             </Link>
             <a
               href="#demo"
-              className="flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-white dark:bg-card px-6 text-sm font-medium text-foreground hover:bg-muted transition-all shadow-soft"
+              className="group flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-white dark:bg-card px-6 text-sm font-medium text-foreground hover:bg-muted hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 shadow-soft"
             >
-              Try interactive demo <ChevronRight className="size-4 text-muted-foreground" />
+              Try interactive demo
+              <ChevronRight className="size-4 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" />
             </a>
           </motion.div>
 
@@ -499,27 +538,46 @@ export default function LandingPage() {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-5 text-xs text-muted-foreground/60"
+            transition={{ duration: 0.6, delay: 0.9 }}
+            className="mt-5 text-xs text-muted-foreground/55"
           >
             Trusted by high-performing agency teams · No credit card required
           </motion.p>
         </div>
+      </section>
 
-        {/* Hero illustration */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="relative mx-auto mt-14 max-w-4xl px-6"
-        >
-          <div className="relative rounded-2xl overflow-hidden border border-border shadow-float bg-card/60">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(94,106,210,0.08),transparent_70%)] pointer-events-none" />
-            <div className="p-1 md:p-2">
-              <IntegrationsOrbit />
-            </div>
-          </div>
-        </motion.div>
+      {/* ── MacBook scroll reveal ────────────────────────────────────────── */}
+      <section className="relative border-t border-border/30 bg-gradient-to-b from-background via-muted/20 to-muted/30 py-16 overflow-hidden">
+        <div className="mx-auto max-w-5xl px-6 text-center mb-8">
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/55 mb-3"
+          >
+            Product preview
+          </motion.p>
+          <motion.h2
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+          >
+            Context delivered in seconds
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto"
+          >
+            Ask anything. Neuron retrieves from Slack, Jira, and Gmail and writes a cited answer.
+          </motion.p>
+        </div>
+        <MacbookScroll />
       </section>
 
       {/* ── Marquee — integration logos ───────────────────────────────────── */}
@@ -947,9 +1005,10 @@ export default function LandingPage() {
           </p>
           <Link
             href="/login"
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-background px-8 text-sm font-semibold text-foreground shadow-depth hover:bg-background/90 transition-all"
+            className="group inline-flex h-11 items-center gap-2 rounded-xl bg-background px-8 text-sm font-semibold text-foreground shadow-depth hover:bg-background/90 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150"
           >
-            Get started free <ArrowRight className="size-4" />
+            Get started free
+            <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
           </Link>
         </div>
       </section>
@@ -957,17 +1016,8 @@ export default function LandingPage() {
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className="border-t border-border/40 bg-background py-10">
         <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2.5">
-            <div className="grid size-6 place-items-center rounded bg-foreground">
-              <svg viewBox="0 0 100 100" className="size-3.5 text-background">
-                <line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" strokeWidth="14" strokeLinecap="round" />
-                <line x1="50" y1="42" x2="30" y2="22" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
-                <line x1="50" y1="58" x2="30" y2="78" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
-                <line x1="50" y1="42" x2="70" y2="22" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
-                <line x1="50" y1="58" x2="70" y2="78" stroke="currentColor" strokeWidth="12" strokeLinecap="round" />
-                <circle cx="50" cy="50" r="10" fill="currentColor" />
-              </svg>
-            </div>
+          <div className="flex items-center gap-2">
+            <NeuronMark className="size-5 text-muted-foreground" />
             <span className="text-xs font-bold text-muted-foreground tracking-tight font-display">Neuron</span>
           </div>
 
