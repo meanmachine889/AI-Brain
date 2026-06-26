@@ -774,6 +774,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.5, delay: (i % 3) * 0.08 }}
+                className="hover:-translate-y-0.5 transition-all duration-200"
               >
                 <CardSpotlight className="group p-5 rounded-2xl border border-border bg-white dark:bg-card transition-all duration-200 h-full">
                   <div className={`mb-4 inline-flex size-10 items-center justify-center rounded-xl relative z-20 ${feature.accent}`}>
