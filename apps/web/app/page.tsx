@@ -40,7 +40,7 @@ import { Marquee } from "@/components/ui/marquee";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 import { PointerHighlight } from "@/components/ui/pointer-highlight";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
-import { FeaturesSection } from "@/components/ui/features-section";
+import { BentoGrid, BentoGridItem } from "@/components/ui/bento-grid";
 import { GsapParallaxHero } from "@/components/ui/gsap-parallax";
 import { GsapScrollReveal } from "@/components/ui/gsap-scroll-reveal";
 
@@ -193,40 +193,6 @@ const FEATURES = [
   },
 ];
 
-const BENTO_TABS = [
-  {
-    title: "Integrations",
-    value: "integrations",
-    description:
-      "Connect Slack, Gmail, Jira, and Drive in under 2 minutes. Neuron handles OAuth, backfills 7 days of history, and deduplicates automatically.",
-    content: <IntegrationsOrbit />,
-    badge: "Auto-Dedupe · 7-Day Backfill",
-  },
-  {
-    title: "Intelligence",
-    value: "intelligence",
-    description:
-      "Maps semantic relationships between clients, people, topics, and due dates — updating on every new Slack message or Jira comment.",
-    content: <BrainHalftone />,
-    badge: "Semantic Vectors",
-  },
-  {
-    title: "Retrieval",
-    value: "retrieval",
-    description:
-      "Traditional search returns stale results. Neuron balances semantic match with a recency-decay formula — current facts in 3 seconds.",
-    content: <RecallChart />,
-    badge: "pgvector HNSW · Recency Decay",
-  },
-  {
-    title: "Document Sync",
-    value: "docs",
-    description:
-      "Parses documents, PDFs, and slide decks in real-time, mapping contents to the matching client record.",
-    content: <ServerIsometric />,
-    badge: "LlamaIndex Parsing",
-  },
-];
 
 // ── Neural network ASCII illustration (SVG) ──────────────────────────────────
 
@@ -862,8 +828,57 @@ export default function LandingPage() {
           })}
         </div>
 
-        {/* Tabbed features showcase */}
-        <FeaturesSection tabs={BENTO_TABS} />
+        {/* Bento grid features showcase */}
+        <BentoGrid className="md:auto-rows-[22rem]">
+          {/* Item 1: Multi-source Integration — large (col-span-2) */}
+          <BentoGridItem
+            className="md:col-span-2"
+            title="Multi-source Integration"
+            description="Connect Slack, Gmail, Jira, and Drive. Every message, ticket, and doc flows into a single client brain automatically."
+            header={
+              <div className="flex flex-1 w-full h-full min-h-[8rem] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 to-[#5e6ad2]/[0.06] p-4">
+                <IntegrationsOrbit />
+              </div>
+            }
+            icon={<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Integrations</span>}
+          />
+          {/* Item 2: Neural Context Index — small (col-span-1) */}
+          <BentoGridItem
+            className="md:col-span-1"
+            title="Neural Context Index"
+            description="Signals are weighted by recency, relevance, and project importance — not raw keyword frequency."
+            header={
+              <div className="flex flex-1 w-full h-full min-h-[8rem] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 to-[#5e6ad2]/[0.06] p-4">
+                <BrainHalftone />
+              </div>
+            }
+            icon={<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Intelligence</span>}
+          />
+          {/* Item 3: Time-Decay Retrieval — small (col-span-1) */}
+          <BentoGridItem
+            className="md:col-span-1"
+            title="Time-Decay Retrieval"
+            description="Ask in natural language. Get answers with citations — the exact Slack message or Jira comment that supports it."
+            header={
+              <div className="flex flex-1 w-full h-full min-h-[8rem] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 to-[#5e6ad2]/[0.06] p-4">
+                <RecallChart />
+              </div>
+            }
+            icon={<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Retrieval</span>}
+          />
+          {/* Item 4: Live Document Sync — large (col-span-2) */}
+          <BentoGridItem
+            className="md:col-span-2"
+            title="Live Document Sync"
+            description="Proposals, SOWs, and briefs stay current. When a doc changes, the brain updates automatically — no manual uploads."
+            header={
+              <div className="flex flex-1 w-full h-full min-h-[8rem] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 to-[#5e6ad2]/[0.06] p-4">
+                <ServerIsometric />
+              </div>
+            }
+            icon={<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Docs</span>}
+          />
+        </BentoGrid>
       </section>
 
       {/* ── Neural network ASCII art section ─────────────────────────────── */}
