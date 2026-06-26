@@ -413,6 +413,30 @@
   to { transform: translateX(0); }
 }
 
+/* MacBook demo auto-play */
+@keyframes demo-typing {
+  0%, 8% { width: 0; opacity: 1; }
+  38%, 82% { width: 100%; opacity: 1; }
+  90%, 100% { width: 100%; opacity: 0; }
+}
+
+@keyframes demo-caret {
+  0%, 38% { border-color: rgba(165, 180, 252, 0.8); }
+  38.1%, 100% { border-color: transparent; }
+}
+
+@keyframes demo-response-fade {
+  0%, 40% { opacity: 0; transform: translateY(5px); }
+  55%, 88% { opacity: 1; transform: translateY(0); }
+  95%, 100% { opacity: 0; transform: translateY(0); }
+}
+
+@keyframes demo-citation-fade {
+  0%, 50% { opacity: 0; transform: translateY(3px); }
+  62%, 88% { opacity: 1; transform: translateY(0); }
+  95%, 100% { opacity: 0; }
+}
+
 @layer utilities {
   .animate-marquee {
     animation: marquee var(--duration, 40s) linear infinite;

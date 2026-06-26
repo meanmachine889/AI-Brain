@@ -87,8 +87,8 @@ function DashboardScreen() {
             { label: "Members" },
           ].map(item => (
             <div key={item.label}
-              className={`flex items-center justify-between px-2 py-[5px] rounded-[5px] text-[8.5px] cursor-pointer transition-colors duration-100 ${
-                item.active ? "bg-white/[0.09] text-white" : "text-white/40 hover:bg-white/[0.04] hover:text-white/60"
+              className={`flex items-center justify-between px-2 py-[5px] rounded-[5px] text-[8.5px] ${
+                item.active ? "bg-white/[0.09] text-white" : "text-white/40"
               }`}
             >
               <span>{item.label}</span>
@@ -115,18 +115,28 @@ function DashboardScreen() {
 
         <div className="flex-1 overflow-hidden px-5 py-2 space-y-2.5">
           {/* Summary */}
-          <p className="text-[9px] text-white/68 leading-[1.7]">
+          <p
+            className="text-[9px] text-white/68 leading-[1.7]"
+            style={{ animation: "demo-response-fade 8s ease infinite" }}
+          >
             Here&apos;s a summary of the recent activity for PrimeOne: PrimeOne&apos;s launch is targeted for next Friday,
             but the footer <span className="text-white/45">(KAN-2)</span> is a long pole and the mobile layout bug{" "}
             <span className="text-white/45">(KAN-4)</span> is still in progress, with the client having flagged it as broken.
             We are currently blocked waiting on their brand asset pack.
           </p>
-          <div className="text-[7px] text-white/22">Generated 24h ago · 17 items</div>
+          <div
+            className="text-[7px] text-white/22"
+            style={{ animation: "demo-response-fade 8s ease infinite" }}
+          >Generated 24h ago · 17 items</div>
 
           {/* Source chips */}
           <div className="flex flex-wrap gap-1">
-            {["Slack · 2h ago", "Jira · KAN-4", "Gmail · Yesterday", "Slack · 3d ago"].map(c => (
-              <span key={c} className="rounded bg-white/[0.035] border border-white/[0.05] px-1.5 py-[2px] text-[7px] font-mono text-white/30">{c}</span>
+            {(["Slack · 2h ago", "Jira · KAN-4", "Gmail · Yesterday", "Slack · 3d ago"] as const).map((c, i) => (
+              <span
+                key={c}
+                className="rounded bg-white/[0.035] border border-white/[0.05] px-1.5 py-[2px] text-[7px] font-mono text-white/30"
+                style={{ animation: `demo-citation-fade 8s ease ${i * 0.15}s infinite` }}
+              >{c}</span>
             ))}
           </div>
 
@@ -138,14 +148,20 @@ function DashboardScreen() {
           </div>
 
           {/* AI response */}
-          <p className="text-[9px] text-white/62 leading-[1.7]">
+          <p
+            className="text-[9px] text-white/62 leading-[1.7]"
+            style={{ animation: "demo-response-fade 8s ease 0.1s infinite" }}
+          >
             PrimeOne&apos;s launch is targeted for next Friday{" "}
             <span className="text-white/30 text-[7px]">(Slack, 2026-06-02)</span>. The client is unhappy with the mobile layout.
             Yash Bharadwaj still owes the client revised mockups and an updated invoice by EOD today.
           </p>
 
           {/* Blockers */}
-          <div className="text-[8.5px] leading-[1.65] text-white/50 space-y-0.5">
+          <div
+            className="text-[8.5px] leading-[1.65] text-white/50 space-y-0.5"
+            style={{ animation: "demo-response-fade 8s ease 0.2s infinite" }}
+          >
             <p><span className="text-rose-400 font-medium">Blocked:</span> Waiting on brand asset pack <span className="text-white/25 text-[7px]">(Slack, 2026-05-30)</span></p>
             <p><span className="text-amber-400 font-medium">KAN-4:</span> Mobile layout bug overdue · Yash Bharadwaj</p>
             <p><span className="text-amber-400 font-medium">KAN-2:</span> Footer section unassigned · due 2026-06-11</p>
@@ -154,14 +170,23 @@ function DashboardScreen() {
 
         {/* Ask bar */}
         <div className="px-4 py-2.5 border-t border-white/[0.04]">
-          <div className="group/ask flex items-center gap-2 bg-[#16181b] border border-white/[0.06] hover:border-indigo/40 rounded-xl px-3 py-1.5 cursor-text transition-colors duration-150 hover:shadow-[0_0_0_2px_rgba(94,106,210,0.08)]">
+          <div className="flex items-center gap-2 bg-[#16181b] border border-white/[0.06] rounded-xl px-3 py-1.5">
             <svg viewBox="0 0 16 16" className="size-3 text-white/20 shrink-0">
               <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
               <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
             </svg>
-            <span className="text-[8.5px] text-white/22 flex-1 flex items-center gap-0.5">
-              Ask anything...
-              <span className="inline-block h-[9px] w-[1.5px] bg-white/30 animate-pulse ml-0.5" />
+            <span className="text-[8.5px] flex-1 flex items-center">
+              <span
+                className="text-indigo/90 font-medium whitespace-nowrap overflow-hidden border-r-2 inline-block"
+                style={{
+                  animation: "demo-typing 8s ease infinite, demo-caret 8s step-end infinite",
+                  maxWidth: "180px",
+                  verticalAlign: "bottom",
+                  borderColor: "rgba(165, 180, 252, 0.8)",
+                }}
+              >
+                What did we promise Acme by Friday?
+              </span>
             </span>
             <div className="size-5 rounded-lg bg-white/[0.06] flex items-center justify-center">
               <svg viewBox="0 0 12 12" className="size-2.5 text-white/35" fill="none">
