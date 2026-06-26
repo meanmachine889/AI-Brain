@@ -1,74 +1,56 @@
 "use client";
 
-import { useMotionValue, motion, useMotionTemplate } from "motion/react";
-import React, { MouseEvent as ReactMouseEvent, useState } from "react";
-import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect";
 import { cn } from "@/lib/utils";
+import { useRef, useState } from "react";
 
-export const CardSpotlight = ({
-  children,
-  radius = 350,
-  color = "rgba(0,0,0,0.04)",
-  className,
-  ...props
-}: {
-  radius?: number;
-  color?: string;
+interface CardSpotlightProps {
+  className?: string;
   children: React.ReactNode;
-} & React.HTMLAttributes<HTMLDivElement>) => {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  function handleMouseMove({
-    currentTarget,
-    clientX,
-    clientY,
-  }: ReactMouseEvent<HTMLDivElement>) {
-    let { left, top } = currentTarget.getBoundingClientRect();
+}
 
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
+export function CardSpotlight({ className, children }: CardSpotlightProps) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
 
-  const [isHovering, setIsHovering] = useState(false);
-  const handleMouseEnter = () => setIsHovering(true);
-  const handleMouseLeave = () => setIsHovering(false);
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!divRef.current) return;
+    const rect = divRef.current.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
   return (
     <div
+      ref={divRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "group/spotlight p-10 rounded-md relative border border-neutral-800 bg-black dark:border-neutral-800",
+        "relative overflow-hidden rounded-2xl border border-border bg-white transition-all duration-300",
+        "hover:shadow-[0_8px_32px_rgba(94,106,210,0.12)]",
         className
       )}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      {...props}
     >
-      <motion.div
-        className="pointer-events-none absolute z-0 -inset-px rounded-md opacity-0 transition duration-300 group-hover/spotlight:opacity-100"
+      {/* Radial cursor glow */}
+      <div
+        className="pointer-events-none absolute inset-0 transition-opacity duration-500"
         style={{
-          backgroundColor: color,
-          maskImage: useMotionTemplate`
-            radial-gradient(
-              ${radius}px circle at ${mouseX}px ${mouseY}px,
-              white,
-              transparent 80%
-            )
-          `,
+          opacity: isHovered ? 1 : 0,
+          background: `radial-gradient(350px circle at ${position.x}px ${position.y}px, rgba(94,106,210,0.055), transparent 60%)`,
         }}
-      >
-        {isHovering && (
-          <CanvasRevealEffect
-            animationSpeed={5}
-            containerClassName="bg-transparent absolute inset-0 pointer-events-none"
-            colors={[
-              [209, 213, 219],
-              [209, 213, 219],
-            ]}
-            dotSize={3}
-          />
-        )}
-      </motion.div>
+      />
+      {/* Gradient border sweep on hover — uses pseudo-border trick via background-clip */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-500"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background:
+            "linear-gradient(white, white) padding-box, linear-gradient(135deg, rgba(94,106,210,0.55), rgba(165,180,252,0.35), rgba(94,106,210,0.55)) border-box",
+          border: "1px solid transparent",
+          borderRadius: "inherit",
+        }}
+      />
       {children}
     </div>
   );
-};
+}
