@@ -34,6 +34,10 @@ import {
   JiraIcon,
   GmailIcon,
   DriveIcon,
+  NotionLogoIcon,
+  LinearLogoIcon,
+  OutlookLogoIcon,
+  GitHubLogoIcon,
 } from "@/components/brand-icons";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { Marquee } from "@/components/ui/marquee";
@@ -385,14 +389,16 @@ function BenchmarkBar({ label, value, max, color, isTop }: {
 
 // ── Integration logo chip ─────────────────────────────────────────────────────
 
-function LogoChip({ icon: Icon, name, color }: { icon: React.FC<React.SVGProps<SVGSVGElement>>; name: string; color: string }) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-border bg-white dark:bg-card px-4 py-2.5 shadow-soft">
-      <Icon className="size-5 shrink-0" style={{ color }} />
-      <span className="text-sm font-medium text-foreground">{name}</span>
-    </div>
-  );
-}
+const MARQUEE_LOGOS: Array<{ icon: React.FC<React.SVGProps<SVGSVGElement>>; name: string }> = [
+  { icon: SlackIcon, name: "Slack" },
+  { icon: GmailIcon, name: "Gmail" },
+  { icon: JiraIcon, name: "Jira" },
+  { icon: DriveIcon, name: "Google Drive" },
+  { icon: NotionLogoIcon, name: "Notion" },
+  { icon: LinearLogoIcon, name: "Linear" },
+  { icon: OutlookLogoIcon, name: "Outlook" },
+  { icon: GitHubLogoIcon, name: "GitHub" },
+];
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
@@ -638,19 +644,23 @@ export default function LandingPage() {
       </section>
 
       {/* ── Marquee — integration logos ───────────────────────────────────── */}
-      <section className="border-y border-border/50 bg-muted/30 py-8">
-        <p className="text-center text-[10.5px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 mb-6">
+      <section className="border-y border-border/40 py-6 overflow-hidden bg-white">
+        <p className="text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/50 mb-5">
           Plugs into the tools your team already uses
         </p>
-        <Marquee className="[--duration:28s]" gap="3rem">
-          <LogoChip icon={SlackIcon} name="Slack" color="#36c5f0" />
-          <LogoChip icon={GmailIcon} name="Gmail" color="#fc413d" />
-          <LogoChip icon={JiraIcon} name="Jira" color="#0052cc" />
-          <LogoChip icon={DriveIcon} name="Google Drive" color="#0ebc5f" />
-          <LogoChip icon={SlackIcon} name="Slack channels" color="#36c5f0" />
-          <LogoChip icon={GmailIcon} name="Outlook" color="#fc413d" />
-          <LogoChip icon={JiraIcon} name="Linear" color="#5e6ad2" />
-          <LogoChip icon={DriveIcon} name="Notion" color="#000000" />
+        <Marquee className="[--duration:32s]" gap="0.75rem">
+          {MARQUEE_LOGOS.map((logo) => {
+            const Icon = logo.icon;
+            return (
+              <div
+                key={logo.name}
+                className="flex items-center gap-2.5 px-4 py-2 rounded-full border border-border/60 bg-white text-foreground/70 text-[13px] font-medium hover:border-border hover:text-foreground transition-colors cursor-default whitespace-nowrap mx-1.5"
+              >
+                <Icon className="size-4 shrink-0 text-foreground/60" />
+                {logo.name}
+              </div>
+            );
+          })}
         </Marquee>
       </section>
 
