@@ -9,16 +9,14 @@ import {
   MessageSquare,
   Mail,
   Sparkles,
-  CheckCircle,
   Clock,
   Search,
   FolderDot,
   Zap,
-  Users,
   Shield,
   ChevronRight,
 } from "lucide-react";
-import { motion, useInView, useScroll, useTransform } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { useRef } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -26,8 +24,9 @@ import { IntegrationsOrbit } from "@/components/illustrations/integrations-orbit
 import { BrainHalftone } from "@/components/illustrations/brain-halftone";
 import { RecallChart } from "@/components/illustrations/recall-chart";
 import { ServerIsometric } from "@/components/illustrations/server-isometric";
-import { BenchmarkTabs } from "@/components/illustrations/benchmark-tabs";
 import { MacbookScroll } from "@/components/illustrations/macbook-scroll";
+import { Pricing } from "@/components/sections/pricing";
+import { Footer } from "@/components/sections/footer";
 
 import {
   SlackIcon,
@@ -353,40 +352,6 @@ function NeuralNetworkSVG() {
   );
 }
 
-// ── Horizontal benchmark bar ──────────────────────────────────────────────────
-
-function BenchmarkBar({ label, value, max, color, isTop }: {
-  label: string; value: number; max: number; color: string; isTop: boolean;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "0px 0px -60px 0px" });
-
-  return (
-    <div ref={ref} className="flex items-center gap-4">
-      <div className={`flex items-center gap-2 w-36 shrink-0 ${isTop ? "font-semibold" : ""}`}>
-        {isTop && (
-          <span className="grid size-5 place-items-center rounded bg-indigo text-white text-[9px] font-bold shrink-0">N</span>
-        )}
-        <span className={`text-sm ${isTop ? "text-foreground" : "text-muted-foreground"}`}>
-          {label}
-        </span>
-      </div>
-      <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ background: color }}
-          initial={{ width: 0 }}
-          animate={inView ? { width: `${(value / max) * 100}%` } : { width: 0 }}
-          transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
-        />
-      </div>
-      <span className={`text-sm tabular-nums w-12 text-right ${isTop ? "font-bold text-foreground" : "text-muted-foreground"}`}>
-        {value}%
-      </span>
-    </div>
-  );
-}
-
 // ── Integration logo chip ─────────────────────────────────────────────────────
 
 const MARQUEE_LOGOS: Array<{ icon: React.FC<React.SVGProps<SVGSVGElement>>; name: string }> = [
@@ -476,7 +441,6 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-6 text-[13px] text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#demo" className="hover:text-foreground transition-colors">Demo</a>
-            <a href="#benchmarks" className="hover:text-foreground transition-colors">Benchmarks</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
           </nav>
 
@@ -941,97 +905,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── SOTA Benchmarks ───────────────────────────────────────────────── */}
-      <section id="benchmarks" className="mx-auto max-w-5xl px-6 py-20 border-t border-border/40">
-        <div className="grid md:grid-cols-2 gap-14 items-start">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-4">
-              Benchmarks
-            </p>
-            <h2 data-gsap-reveal className="font-display text-3xl font-bold tracking-tight text-foreground mb-4">
-              Faster context<br />than any alternative
-            </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-xs">
-              Time-to-context score comparing Neuron against manual prep and generic AI tools
-              on real agency workflows.
-            </p>
-            <div className="space-y-4">
-              {[
-                { label: "Neuron", value: 97, max: 100, color: "#5e6ad2", isTop: true },
-                { label: "Notion AI", value: 68, max: 100, color: "#94a3b8", isTop: false },
-                { label: "ChatGPT", value: 54, max: 100, color: "#94a3b8", isTop: false },
-                { label: "Manual prep", value: 22, max: 100, color: "#94a3b8", isTop: false },
-              ].map((bar) => (
-                <BenchmarkBar key={bar.label} {...bar} />
-              ))}
-            </div>
-          </div>
-
-          {/* Interactive benchmark tabs */}
-          <div className="mt-2">
-            <BenchmarkTabs />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ───────────────────────────────────────────────────────── */}
-      <section id="pricing" className="border-t border-border/40 bg-muted/20 py-20">
-        <div className="mx-auto max-w-5xl px-6 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
-            Pricing
-          </p>
-          <h2 data-gsap-reveal className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-foreground mb-3">
-            Flat agency pricing
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-12">
-            No seat taxes. Scale your clients and developers without worrying about costs.
-          </p>
-
-          <div className="mx-auto max-w-sm rounded-2xl border border-border bg-white dark:bg-card p-8 shadow-raised text-left relative overflow-hidden">
-            {/* Top ribbon */}
-            <div className="absolute top-0 right-0 rounded-bl-xl bg-indigo px-3 py-1 text-[10px] font-bold text-white tracking-wider uppercase">
-              Flat Rate
-            </div>
-
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-              Agency Plan
-            </p>
-            <div className="flex items-baseline gap-1">
-              <span className="font-display text-5xl font-bold text-foreground">₹12,000</span>
-              <span className="text-sm text-muted-foreground">/ month</span>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">Billed monthly. Cancel anytime.</p>
-
-            <ul className="mt-6 space-y-3 border-t border-border pt-6 text-[13px] text-foreground">
-              {[
-                "Unlimited seats for PMs & Devs",
-                "Up to 15 active client brain records",
-                "Slack, Gmail & Jira integrations",
-                "Ask Bar (RAG Q&A) & Attention Feed",
-                "Postgres RLS Security",
-                "14-day free trial, no card required",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2.5">
-                  <CheckCircle className="size-4 text-emerald shrink-0" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-8">
-              <Link
-                href="/login"
-                className="cta-lime flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold shadow-depth transition-all"
-              >
-                Start 14-day free trial
-              </Link>
-              <p className="mt-3 text-center text-[11px] text-muted-foreground/60">
-                No credit card required for setup
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Pricing />
 
       {/* ── CTA Banner ────────────────────────────────────────────────────── */}
       <section className="border-t border-border/40 bg-foreground py-16">
@@ -1052,24 +926,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border/40 bg-background py-10">
-        <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <NeuronMark className="size-5 text-muted-foreground" />
-            <span className="text-xs font-bold text-muted-foreground tracking-tight font-display">Neuron</span>
-          </div>
-
-          <p className="text-[11px] text-muted-foreground/60">
-            &copy; {new Date().getFullYear()} Neuron. In compliance with data isolation frameworks.
-          </p>
-
-          <div className="flex items-center gap-4 text-xs text-muted-foreground/75">
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
