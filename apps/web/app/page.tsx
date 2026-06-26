@@ -229,6 +229,9 @@ const BENTO_TABS = [
 // ── Neural network ASCII illustration (SVG) ──────────────────────────────────
 
 function NeuralNetworkSVG() {
+  const ref = useRef<SVGSVGElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "0px 0px -60px 0px" });
+
   const nodes = [
     // Layer 1 (inputs)
     { x: 60, y: 80 }, { x: 60, y: 160 }, { x: 60, y: 240 }, { x: 60, y: 320 },
@@ -249,11 +252,14 @@ function NeuralNetworkSVG() {
     [7,10],[7,11],[8,10],[8,11],[9,10],[9,11],
   ];
 
+  // Select connections that get animated pulse particles
+  const pulseConnections = [[0,4],[1,5],[2,6],[4,7],[5,8],[6,9],[7,10],[9,11]];
+
   const inputLabels = ["Slack", "Gmail", "Jira", "Drive"];
   const outputLabels = ["Context", "Alerts"];
 
   return (
-    <svg viewBox="0 0 520 400" className="w-full h-full select-none" aria-hidden>
+    <svg ref={ref} viewBox="0 0 520 400" className="w-full h-full select-none" aria-hidden>
       <defs>
         <linearGradient id="nn-edge" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#5e6ad2" stopOpacity="0.15" />
@@ -263,10 +269,22 @@ function NeuralNetworkSVG() {
           <stop offset="0%" stopColor="#5e6ad2" stopOpacity="0.35" />
           <stop offset="100%" stopColor="#5e6ad2" stopOpacity="0" />
         </radialGradient>
-        <filter id="nn-blur">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        <filter id="node-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
+        {/* Path definitions for pulse particle motion */}
+        {pulseConnections.map(([from, to], i) => (
+          <path
+            key={`path-def-${i}`}
+            id={`path-${from}-${to}-${i}`}
+            d={`M ${nodes[from].x} ${nodes[from].y} L ${nodes[to].x} ${nodes[to].y}`}
+            fill="none"
+          />
+        ))}
       </defs>
 
       {/* ASCII-style grid background */}
@@ -275,7 +293,7 @@ function NeuralNetworkSVG() {
       </pattern>
       <rect width="520" height="400" fill="url(#nn-grid)" />
 
-      {/* Connections */}
+      {/* Connections with draw-on animation */}
       {connections.map(([from, to], i) => (
         <line
           key={i}
@@ -283,12 +301,26 @@ function NeuralNetworkSVG() {
           x2={nodes[to].x} y2={nodes[to].y}
           stroke="url(#nn-edge)"
           strokeWidth="1"
+          strokeLinecap="round"
+          strokeDasharray="200"
+          style={{
+            strokeDashoffset: isInView ? 0 : 200,
+            transition: `stroke-dashoffset 0.9s ease ${(0.1 + i * 0.12).toFixed(2)}s`,
+          }}
         />
       ))}
 
-      {/* Animated pulse on select connections */}
-      {[[0,4],[1,5],[2,6],[4,7],[5,8],[6,9],[7,10],[9,11]].map(([from, to], i) => (
+      {/* Animated pulse particles on select connections */}
+      {pulseConnections.map(([from, to], i) => (
         <circle key={`pulse-${i}`} r="2" fill="#5e6ad2" opacity="0.7">
+          <animate
+            attributeName="fill"
+            values="#5e6ad2;#a5b4fc;#818cf8;#5e6ad2"
+            dur="3s"
+            repeatCount="indefinite"
+            calcMode="spline"
+            keySplines="0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1"
+          />
           <animateMotion
             dur={`${1.8 + i * 0.3}s`}
             repeatCount="indefinite"
@@ -299,16 +331,16 @@ function NeuralNetworkSVG() {
         </circle>
       ))}
 
-      {/* Nodes */}
+      {/* Nodes with glow filter */}
       {nodes.map((node, i) => (
         <g key={i}>
           <circle cx={node.x} cy={node.y} r="10" fill="url(#nn-node-glow)" />
           <circle
             cx={node.x} cy={node.y} r="6"
-            fill="white"
+            fill="rgba(94,106,210,0.9)"
             stroke="#5e6ad2"
             strokeWidth="1.5"
-            className="dark:fill-[#0f1011]"
+            filter="url(#node-glow)"
           />
           {/* Animated pulse for output nodes */}
           {i >= 10 && (
@@ -829,7 +861,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Neural network ASCII art section ─────────────────────────────── */}
-      <section className="border-t border-border/40 bg-muted/20 py-20">
+      <section className="border-t border-border/40 bg-gradient-to-br from-muted/20 via-indigo/[0.03] to-muted/20 py-20">
         <div className="mx-auto max-w-5xl px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -869,8 +901,9 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
-            <div className="relative h-72 md:h-80 rounded-2xl border border-border bg-card overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(94,106,210,0.05),transparent_70%)] pointer-events-none" />
+            <div className="relative h-72 md:h-80 flex items-center justify-center">
+              {/* Ambient glow swatch */}
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(94,106,210,0.12),transparent_70%)] pointer-events-none" />
               <NeuralNetworkSVG />
             </div>
           </div>
