@@ -41,6 +41,8 @@ import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect
 import { PointerHighlight } from "@/components/ui/pointer-highlight";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { FeaturesSection } from "@/components/ui/features-section";
+import { GsapParallaxHero } from "@/components/ui/gsap-parallax";
+import { GsapScrollReveal } from "@/components/ui/gsap-scroll-reveal";
 
 // ── Neuron SVG logomark (no bounding box) ────────────────────────────────────
 function NeuronMark({ className }: { className?: string }) {
@@ -522,13 +524,13 @@ export default function LandingPage() {
       </header>
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden">
+      <section id="hero-section" className="relative overflow-hidden min-h-[85vh]">
         {/* Animated ripple background */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div id="hero-grid" className="pointer-events-none absolute inset-0 overflow-hidden">
           <BackgroundRippleEffect />
         </div>
         {/* Bottom gradient blend to next section */}
-        <div className="pointer-events-none absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-background to-transparent" />
+        <div className="pointer-events-none absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-background to-transparent" />
 
         <div className="relative mx-auto w-full max-w-5xl px-6 text-center pt-20 pb-24 md:pt-28 md:pb-28">
           {/* Badge */}
@@ -550,6 +552,7 @@ export default function LandingPage() {
             variants={heroContainer}
             initial="hidden"
             animate="visible"
+            data-gsap-reveal
             className="font-display text-[3.2rem] font-bold tracking-tight text-foreground sm:text-7xl md:text-[5.25rem] lg:text-[6rem] leading-[0.88] max-w-4xl mx-auto"
           >
             {["The", "shared"].map((w) => (
@@ -578,6 +581,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
+            data-gsap-reveal
             className="mt-7 max-w-xl mx-auto text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
             PMs waste 30 minutes per client gathering context before every status call.
@@ -629,6 +633,8 @@ export default function LandingPage() {
             Trusted by high-performing agency teams · No credit card required
           </motion.p>
         </div>
+        <GsapParallaxHero />
+        <GsapScrollReveal />
       </section>
 
       {/* ── MacBook scroll reveal ────────────────────────────────────────── */}
@@ -823,7 +829,7 @@ export default function LandingPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
             Features
           </p>
-          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
+          <h2 data-gsap-reveal className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
             Built for agency operations
           </h2>
           <p className="mt-3 text-sm text-muted-foreground max-w-lg mx-auto">
@@ -868,7 +874,7 @@ export default function LandingPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-4">
                 How it works
               </p>
-              <h2 className="font-display text-3xl font-bold tracking-tight text-foreground mb-6">
+              <h2 data-gsap-reveal className="font-display text-3xl font-bold tracking-tight text-foreground mb-6">
                 Raw signals → unified intelligence
               </h2>
               <div className="space-y-5">
@@ -917,7 +923,7 @@ export default function LandingPage() {
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-4">
               Benchmarks
             </p>
-            <h2 className="font-display text-3xl font-bold tracking-tight text-foreground mb-4">
+            <h2 data-gsap-reveal className="font-display text-3xl font-bold tracking-tight text-foreground mb-4">
               Faster context<br />than any alternative
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-xs">
@@ -949,7 +955,7 @@ export default function LandingPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">
             Pricing
           </p>
-          <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-foreground mb-3">
+          <h2 data-gsap-reveal className="font-display text-3xl font-bold tracking-tight sm:text-4xl text-foreground mb-3">
             Flat agency pricing
           </h2>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-12">

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LenisProvider } from "@/components/ui/lenis-provider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -44,7 +45,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <TooltipProvider>{children}</TooltipProvider>
+          <TooltipProvider><LenisProvider>{children}</LenisProvider></TooltipProvider>
           <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
