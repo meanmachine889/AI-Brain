@@ -40,6 +40,7 @@ import { Marquee } from "@/components/ui/marquee";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 import { PointerHighlight } from "@/components/ui/pointer-highlight";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
+import { FeaturesSection } from "@/components/ui/features-section";
 
 // ── Neuron SVG logomark (no bounding box) ────────────────────────────────────
 function NeuronMark({ className }: { className?: string }) {
@@ -187,6 +188,41 @@ const FEATURES = [
       "Each agency's data is completely isolated at the database level. We never cross-contaminate client data.",
     accent: "bg-emerald-50 dark:bg-emerald-950/30",
     iconColor: "text-emerald-600 dark:text-emerald-500",
+  },
+];
+
+const BENTO_TABS = [
+  {
+    title: "Integrations",
+    value: "integrations",
+    description:
+      "Connect Slack, Gmail, Jira, and Drive in under 2 minutes. Neuron handles OAuth, backfills 7 days of history, and deduplicates automatically.",
+    content: <IntegrationsOrbit />,
+    badge: "Auto-Dedupe · 7-Day Backfill",
+  },
+  {
+    title: "Intelligence",
+    value: "intelligence",
+    description:
+      "Maps semantic relationships between clients, people, topics, and due dates — updating on every new Slack message or Jira comment.",
+    content: <BrainHalftone />,
+    badge: "Semantic Vectors",
+  },
+  {
+    title: "Retrieval",
+    value: "retrieval",
+    description:
+      "Traditional search returns stale results. Neuron balances semantic match with a recency-decay formula — current facts in 3 seconds.",
+    content: <RecallChart />,
+    badge: "pgvector HNSW · Recency Decay",
+  },
+  {
+    title: "Document Sync",
+    value: "docs",
+    description:
+      "Parses documents, PDFs, and slide decks in real-time, mapping contents to the matching client record.",
+    content: <ServerIsometric />,
+    badge: "LlamaIndex Parsing",
   },
 ];
 
@@ -788,88 +824,8 @@ export default function LandingPage() {
           })}
         </div>
 
-        {/* Bento row — big illustrations */}
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* Integrations orbit — spans 2 */}
-          <div className="glass-card md:col-span-2 p-6 rounded-2xl flex flex-col justify-between min-h-[380px]">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-1">
-                Multi-source Integration
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
-                Connect your workspace. Neuron handles OAuth, background threads, and merges
-                channels, emails, and tickets into one shared brain.
-              </p>
-            </div>
-            <div className="flex-1 flex items-center justify-center mt-4">
-              <div className="w-full">
-                <IntegrationsOrbit />
-              </div>
-            </div>
-            <div className="mt-4 flex gap-1.5">
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">Auto-Dedupe</span>
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">7-Day Backfill</span>
-            </div>
-          </div>
-
-          {/* Brain halftone */}
-          <div className="glass-card p-6 rounded-2xl flex flex-col justify-between min-h-[380px]">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-1">
-                Neural Context Index
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Maps semantic relationships between clients, people, topics, and due dates —
-                updating on every Slack message or Jira comment.
-              </p>
-            </div>
-            <div className="flex-1 flex items-center justify-center mt-4">
-              <BrainHalftone />
-            </div>
-            <div className="mt-4">
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">Semantic Vectors</span>
-            </div>
-          </div>
-
-          {/* Recall chart — spans 2 */}
-          <div className="glass-card md:col-span-2 p-6 rounded-2xl flex flex-col justify-between min-h-[320px]">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-1">
-                Time-Decay RAG Retrieval
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
-                Traditional search returns stale results. Neuron balances semantic match with a
-                recency-decay formula — current facts in 3 seconds.
-              </p>
-            </div>
-            <div className="flex-1 flex items-center justify-center mt-4">
-              <RecallChart />
-            </div>
-            <div className="mt-4 flex gap-1.5">
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">pgvector HNSW</span>
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">Recency Decay</span>
-            </div>
-          </div>
-
-          {/* Server isometric */}
-          <div className="glass-card p-6 rounded-2xl flex flex-col justify-between min-h-[320px]">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-1">
-                Google Drive & Docs Sync
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Parses documents, PDFs, and slide decks in real-time, mapping contents to
-                the matching client record.
-              </p>
-            </div>
-            <div className="flex-1 flex items-center justify-center mt-4">
-              <ServerIsometric />
-            </div>
-            <div className="mt-4">
-              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-mono text-muted-foreground">LlamaIndex Parsing</span>
-            </div>
-          </div>
-        </div>
+        {/* Tabbed features showcase */}
+        <FeaturesSection tabs={BENTO_TABS} />
       </section>
 
       {/* ── Neural network ASCII art section ─────────────────────────────── */}
