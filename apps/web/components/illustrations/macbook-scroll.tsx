@@ -154,7 +154,7 @@ function DashboardScreen() {
 
         {/* Ask bar */}
         <div className="px-4 py-2.5 border-t border-white/[0.04]">
-          <div className="group/ask flex items-center gap-2 bg-[#16181b] border border-white/[0.06] hover:border-indigo-400/40 rounded-xl px-3 py-1.5 cursor-text transition-colors duration-150 hover:shadow-[0_0_0_2px_rgba(94,106,210,0.08)]">
+          <div className="group/ask flex items-center gap-2 bg-[#16181b] border border-white/[0.06] hover:border-indigo/40 rounded-xl px-3 py-1.5 cursor-text transition-colors duration-150 hover:shadow-[0_0_0_2px_rgba(94,106,210,0.08)]">
             <svg viewBox="0 0 16 16" className="size-3 text-white/20 shrink-0">
               <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
               <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
