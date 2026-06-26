@@ -87,8 +87,8 @@ function DashboardScreen() {
             { label: "Members" },
           ].map(item => (
             <div key={item.label}
-              className={`flex items-center justify-between px-2 py-[5px] rounded-[5px] text-[8.5px] ${
-                item.active ? "bg-white/[0.09] text-white" : "text-white/40"
+              className={`flex items-center justify-between px-2 py-[5px] rounded-[5px] text-[8.5px] cursor-pointer transition-colors duration-100 ${
+                item.active ? "bg-white/[0.09] text-white" : "text-white/40 hover:bg-white/[0.04] hover:text-white/60"
               }`}
             >
               <span>{item.label}</span>
@@ -154,12 +154,15 @@ function DashboardScreen() {
 
         {/* Ask bar */}
         <div className="px-4 py-2.5 border-t border-white/[0.04]">
-          <div className="flex items-center gap-2 bg-[#16181b] border border-white/[0.06] rounded-xl px-3 py-1.5">
+          <div className="group/ask flex items-center gap-2 bg-[#16181b] border border-white/[0.06] hover:border-indigo-400/40 rounded-xl px-3 py-1.5 cursor-text transition-colors duration-150 hover:shadow-[0_0_0_2px_rgba(94,106,210,0.08)]">
             <svg viewBox="0 0 16 16" className="size-3 text-white/20 shrink-0">
               <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
               <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
             </svg>
-            <span className="text-[8.5px] text-white/22 flex-1">Ask anything...</span>
+            <span className="text-[8.5px] text-white/22 flex-1 flex items-center gap-0.5">
+              Ask anything...
+              <span className="inline-block h-[9px] w-[1.5px] bg-white/30 animate-pulse ml-0.5" />
+            </span>
             <div className="size-5 rounded-lg bg-white/[0.06] flex items-center justify-center">
               <svg viewBox="0 0 12 12" className="size-2.5 text-white/35" fill="none">
                 <path d="M6 9V3M3 6l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

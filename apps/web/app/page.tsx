@@ -563,7 +563,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── MacBook scroll reveal ────────────────────────────────────────── */}
-      <section className="relative border-t border-border/30 bg-gradient-to-b from-background via-muted/20 to-muted/30 py-16 overflow-hidden">
+      <section className="relative border-t border-border/30 bg-gradient-to-b from-background via-muted/20 to-muted/30 py-16">
         <div className="mx-auto max-w-5xl px-6 text-center mb-8">
           <motion.p
             initial={{ opacity: 0, y: 10 }}
