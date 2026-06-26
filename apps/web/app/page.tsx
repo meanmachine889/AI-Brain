@@ -39,6 +39,7 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import { Marquee } from "@/components/ui/marquee";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 import { PointerHighlight } from "@/components/ui/pointer-highlight";
+import { CardSpotlight } from "@/components/ui/card-spotlight";
 
 // ── Neuron SVG logomark (no bounding box) ────────────────────────────────────
 function NeuronMark({ className }: { className?: string }) {
@@ -773,13 +774,14 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.5, delay: (i % 3) * 0.08 }}
-                className="group p-5 rounded-2xl border border-border bg-white dark:bg-card hover:shadow-raised transition-all duration-200 hover:-translate-y-0.5"
               >
-                <div className={`mb-4 inline-flex size-10 items-center justify-center rounded-xl ${feature.accent}`}>
-                  <Icon className={`size-5 ${feature.iconColor}`} />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground mb-1.5">{feature.title}</h3>
-                <p className="text-[13px] text-muted-foreground leading-relaxed">{feature.description}</p>
+                <CardSpotlight className="group p-5 rounded-2xl border border-border bg-white dark:bg-card transition-all duration-200 h-full">
+                  <div className={`mb-4 inline-flex size-10 items-center justify-center rounded-xl relative z-20 ${feature.accent}`}>
+                    <Icon className={`size-5 ${feature.iconColor}`} />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground mb-1.5 relative z-20">{feature.title}</h3>
+                  <p className="text-[13px] text-muted-foreground leading-relaxed relative z-20">{feature.description}</p>
+                </CardSpotlight>
               </motion.div>
             );
           })}
