@@ -27,6 +27,7 @@ import { ServerIsometric } from "@/components/illustrations/server-isometric";
 import { MacbookScroll } from "@/components/illustrations/macbook-scroll";
 import { Pricing } from "@/components/sections/pricing";
 import { Footer } from "@/components/sections/footer";
+import { HeroAside } from "@/components/sections/hero-aside";
 
 import {
   SlackIcon,
@@ -429,7 +430,12 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
 
-      {/* ── Nav ─────────────────────────────────────────────────────────── */}
+      {/* ── New Aside-style hero (replaces old nav + hero below) ─────────── */}
+      <HeroAside />
+
+      {/* ── OLD nav + hero — kept for reference, not rendered ────────────── */}
+      {false && (
+      <>
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
 
@@ -606,6 +612,8 @@ export default function LandingPage() {
         </div>
         <MacbookScroll />
       </section>
+      </>
+      )}
 
       {/* ── Marquee — integration logos ───────────────────────────────────── */}
       <section className="border-y border-border/40 py-6 overflow-hidden bg-white">
