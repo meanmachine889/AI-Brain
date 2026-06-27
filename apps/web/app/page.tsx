@@ -28,6 +28,8 @@ import { MacbookScroll } from "@/components/illustrations/macbook-scroll";
 import { Pricing } from "@/components/sections/pricing";
 import { Footer } from "@/components/sections/footer";
 import { HeroAside } from "@/components/sections/hero-aside";
+import { AboutSection } from "@/components/yash-components/about-section";
+import { IntegrationsSection } from "@/components/yash-components/integrations-section";
 
 import {
   SlackIcon,
@@ -433,6 +435,9 @@ export default function LandingPage() {
       {/* ── New Aside-style hero (replaces old nav + hero below) ─────────── */}
       <HeroAside />
 
+      {/* ── What is Neuron — intro ──────────────────────────────────────── */}
+      <AboutSection />
+
       {/* ── OLD nav + hero — kept for reference, not rendered ────────────── */}
       {false && (
       <>
@@ -615,6 +620,9 @@ export default function LandingPage() {
       </>
       )}
 
+      {/* ── Marquee + Stats — kept for reference, not rendered ──────────── */}
+      {false && (
+      <>
       {/* ── Marquee — integration logos ───────────────────────────────────── */}
       <section className="border-y border-border/40 py-6 overflow-hidden bg-white">
         <p className="text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/50 mb-5">
@@ -659,6 +667,11 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      </>
+      )}
+
+      {/* ── § Integrations ──────────────────────────────────────────────── */}
+      <IntegrationsSection />
 
       {/* ── Interactive Q&A Demo ───────────────────────────────────────────── */}
       <section id="demo" className="mx-auto max-w-5xl px-6 py-20 md:py-24">
