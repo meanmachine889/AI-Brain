@@ -2,39 +2,63 @@
 
 import { motion } from "motion/react";
 
-import { cn } from "@/lib/utils";
 import { SlackIcon, JiraIcon, GmailIcon, DriveIcon } from "@/components/brand-icons";
 import { SectionFrame } from "@/components/yash-components/section-frame";
 
 // Same dashboard image used in the hero. Placeholder for a screen recording.
 const DASHBOARD = "/hero%20assets/dashboard.png";
 
-// 2×2 grid cells — a dashboard screenshot on a bright gradient, placed
-// hero-style (inset, top visible, bottom bleeding off the cell).
-const CELLS = [
+// Highlight important words in black inside a flowing paragraph.
+function Hl({ children }: { children: React.ReactNode }) {
+  return <span className="font-medium text-foreground">{children}</span>;
+}
+
+// Each feature — a flowing paragraph and a dashboard screenshot below it.
+const CELLS: { key: string; img: string; desc: React.ReactNode }[] = [
   {
-    label: "Alerts",
-    desc: "Open items that need action, per client.",
+    key: "alerts",
     img: "/feature%20assets/alert.png",
-    gradient: "bg-gradient-to-br from-rose-200 via-orange-200 to-amber-100",
+    desc: (
+      <>
+        Neuron watches every client and flags what needs you:{" "}
+        <Hl>overdue tickets</Hl>, <Hl>blockers</Hl>, <Hl>silent clients</Hl>, and{" "}
+        <Hl>scope creep</Hl> against the original brief, so problems reach you
+        before they become fires.
+      </>
+    ),
   },
   {
-    label: "Recent activity",
-    desc: "Everything ingested across a client, newest first.",
+    key: "recent",
     img: "/feature%20assets/recent.png",
-    gradient: "bg-gradient-to-br from-indigo-200 via-violet-200 to-sky-100",
+    desc: (
+      <>
+        A running feed of everything ingested for a client across{" "}
+        <Hl>Slack</Hl>, <Hl>Gmail</Hl>, and <Hl>Jira</Hl>, newest first, each item
+        linked back to <Hl>the exact source message</Hl> it came from.
+      </>
+    ),
   },
   {
-    label: "Configuration",
-    desc: "Control what gets synced and how.",
+    key: "configuration",
     img: "/feature%20assets/alert.png",
-    gradient: "bg-gradient-to-br from-emerald-200 via-teal-200 to-cyan-100",
+    desc: (
+      <>
+        Choose <Hl>which channels, inboxes, and projects</Hl> feed each client,
+        set the <Hl>sync cadence</Hl>, and Neuron keeps the brain current in the
+        background, no manual uploads.
+      </>
+    ),
   },
   {
-    label: "Access log",
-    desc: "Who looked at this client, and when.",
+    key: "access-log",
     img: "/feature%20assets/access-log.png",
-    gradient: "bg-gradient-to-br from-amber-200 via-yellow-100 to-lime-100",
+    desc: (
+      <>
+        A complete record of <Hl>who opened a client</Hl>, <Hl>what they asked</Hl>,
+        and <Hl>when</Hl>, so when a privacy-conscious account asks who touched
+        their data, you have an exact answer.
+      </>
+    ),
   },
 ];
 
@@ -87,54 +111,25 @@ export function IntegrationsSection() {
           className="mt-14 block select-none"
         />
 
-        {/* Secondary description — no heading */}
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.5 }}
-          className="mx-auto mt-20 max-w-3xl text-base font-light leading-relaxed text-muted-foreground sm:text-lg"
-        >
-          You also get a clear view of everything around a client: the{" "}
-          <span className="font-medium text-foreground">alerts</span> that need
-          action, <span className="font-medium text-foreground">recent activity</span>{" "}
-          as it lands, the{" "}
-          <span className="font-medium text-foreground">configuration</span> for what
-          gets synced, and an{" "}
-          <span className="font-medium text-foreground">access log</span> of who
-          looked at what.
-        </motion.p>
-
-        {/* 2×2 grid — full frame width (escapes the frame's px-6), no gap, no
-            rounded corners, shared borders. */}
-        <div className="-mx-6 mt-12 grid grid-cols-2 border-t border-border">
-          {CELLS.map((cell, i) => (
+        {/* Each feature — centered paragraph + dashboard screenshot below
+            (placeholder for a screen recording). */}
+        <div className="mt-28 space-y-32 md:mt-36 md:space-y-40">
+          {CELLS.map((cell) => (
             <motion.div
-              key={cell.label}
+              key={cell.key}
               initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: (i % 2) * 0.08 }}
-              className={cn(
-                "relative flex aspect-[16/10] flex-col overflow-hidden border-border",
-                i < 2 && "border-b",
-                i % 2 === 0 && "border-r",
-                cell.gradient,
-              )}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5 }}
             >
-              {/* Caption — top */}
-              <div className="relative z-10 px-7 pt-7 text-left">
-                <h3 className="text-sm font-medium text-foreground">{cell.label}</h3>
-                <p className="mt-1 text-[13px] font-light leading-relaxed text-foreground/60">
-                  {cell.desc}
-                </p>
-              </div>
-
-              {/* Screenshot — centered, bleeds off the bottom (hero-style) */}
+              <p className="mx-auto max-w-2xl text-base font-light leading-relaxed text-muted-foreground sm:text-lg">
+                {cell.desc}
+              </p>
               <img
                 src={cell.img}
-                alt={cell.label}
-                className="absolute inset-x-0 -bottom-7 mx-auto w-[82%] max-w-none select-none rounded-t-xl"
+                alt=""
+                aria-hidden
+                className="mt-12 block w-full select-none rounded-xl md:mt-14"
               />
             </motion.div>
           ))}
