@@ -30,6 +30,7 @@ import { Footer } from "@/components/sections/footer";
 import { HeroAside } from "@/components/sections/hero-aside";
 import { AboutSection } from "@/components/yash-components/about-section";
 import { IntegrationsSection } from "@/components/yash-components/integrations-section";
+import { FeaturesSection } from "@/components/yash-components/features-section";
 
 import {
   SlackIcon,
@@ -49,6 +50,7 @@ import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { BentoGrid, BentoGridItem } from "@/components/ui/bento-grid";
 import { GsapParallaxHero } from "@/components/ui/gsap-parallax";
 import { GsapScrollReveal } from "@/components/ui/gsap-scroll-reveal";
+import { FeatureSection } from "@/components/sections/feature-section";
 
 // ── Neuron SVG logomark (no bounding box) ────────────────────────────────────
 function NeuronMark({ className }: { className?: string }) {
@@ -672,6 +674,7 @@ export default function LandingPage() {
 
       {/* ── § Integrations ──────────────────────────────────────────────── */}
       <IntegrationsSection />
+      <FeaturesSection />
 
       {/* ── Interactive Q&A Demo ───────────────────────────────────────────── */}
       <section id="demo" className="mx-auto max-w-5xl px-6 py-20 md:py-24">

@@ -69,15 +69,15 @@ function InlineIcon({ Icon }: { Icon: (p: React.SVGProps<SVGSVGElement>) => Reac
   );
 }
 
-// Integrations — "Integrate apps once and ask literally anything you want."
+// Features — "Integrate apps once and ask literally anything you want."
 // Centered heading + description, then a full-width product visual.
-export function IntegrationsSection() {
+export function FeaturesSection() {
   return (
     <SectionFrame
       className="font-[family-name:var(--font-poppins)]"
       innerClassName="py-20 text-center md:py-28"
     >
-      <section id="integrations">
+      <section id="features">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -86,30 +86,33 @@ export function IntegrationsSection() {
           className="mx-auto max-w-2xl"
         >
           <h2 className="text-3xl font-medium leading-tight tracking-tight text-foreground">
-            Integrate apps once and ask literally anything you want!
+            Anything you need to know about a client, in one place.
           </h2>
-
-          <p className="mx-auto mt-9 max-w-3xl text-base font-light leading-relaxed text-muted-foreground sm:text-lg">
-            Connect{" "}
-            <InlineIcon Icon={SlackIcon} />,{" "}
-            <InlineIcon Icon={GmailIcon} />,{" "}
-            <InlineIcon Icon={JiraIcon} />, and{" "}
-            <InlineIcon Icon={DriveIcon} /> once, and Neuron keeps reading them for
-            you. Then just ask, in plain English, and get an answer pulled from
-            everything across a client, cited back to the source.
-          </p>
         </motion.div>
 
-        {/* Full-width product visual (placeholder for a screen recording) */}
-        <motion.img
-          src={DASHBOARD}
-          alt="Neuron dashboard"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="mt-14 block select-none"
-        />
+        {/* Each feature — centered paragraph + dashboard screenshot below
+            (placeholder for a screen recording). */}
+        <div className="mt-28 space-y-32 md:mt-36 md:space-y-40">
+          {CELLS.map((cell) => (
+            <motion.div
+              key={cell.key}
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5 }}
+            >
+              <p className="mx-auto max-w-2xl text-base font-light leading-relaxed text-muted-foreground sm:text-lg">
+                {cell.desc}
+              </p>
+              <img
+                src={cell.img}
+                alt=""
+                aria-hidden
+                className="mt-12 block w-full select-none rounded-xl md:mt-14"
+              />
+            </motion.div>
+          ))}
+        </div>
       </section>
     </SectionFrame>
   );
