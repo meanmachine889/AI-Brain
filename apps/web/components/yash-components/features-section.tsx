@@ -2,21 +2,23 @@
 
 import { motion } from "motion/react";
 
-import { SlackIcon, JiraIcon, GmailIcon, DriveIcon } from "@/components/brand-icons";
 import { SectionFrame } from "@/components/yash-components/section-frame";
-
-// Same dashboard image used in the hero. Placeholder for a screen recording.
-const DASHBOARD = "/hero%20assets/dashboard.png";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Highlight important words in black inside a flowing paragraph.
 function Hl({ children }: { children: React.ReactNode }) {
   return <span className="font-medium text-foreground">{children}</span>;
 }
 
-// Each feature — a flowing paragraph and a dashboard screenshot below it.
-const CELLS: { key: string; img: string; desc: React.ReactNode }[] = [
+const FEATURES: {
+  key: string;
+  label: string;
+  img: string;
+  desc: React.ReactNode;
+}[] = [
   {
     key: "alerts",
+    label: "Alerts",
     img: "/feature%20assets/alert.png",
     desc: (
       <>
@@ -29,6 +31,7 @@ const CELLS: { key: string; img: string; desc: React.ReactNode }[] = [
   },
   {
     key: "recent",
+    label: "Recent",
     img: "/feature%20assets/recent.png",
     desc: (
       <>
@@ -40,6 +43,7 @@ const CELLS: { key: string; img: string; desc: React.ReactNode }[] = [
   },
   {
     key: "configuration",
+    label: "Configuration",
     img: "/feature%20assets/alert.png",
     desc: (
       <>
@@ -51,6 +55,7 @@ const CELLS: { key: string; img: string; desc: React.ReactNode }[] = [
   },
   {
     key: "access-log",
+    label: "Access log",
     img: "/feature%20assets/access-log.png",
     desc: (
       <>
@@ -61,13 +66,6 @@ const CELLS: { key: string; img: string; desc: React.ReactNode }[] = [
     ),
   },
 ];
-
-// Small inline icon for use within the description text.
-function InlineIcon({ Icon }: { Icon: (p: React.SVGProps<SVGSVGElement>) => React.ReactElement }) {
-  return (
-    <Icon className="mx-0.5 inline-block size-[1.05em] -translate-y-px align-middle select-none" />
-  );
-}
 
 // Features — "Integrate apps once and ask literally anything you want."
 // Centered heading + description, then a full-width product visual.
@@ -89,30 +87,44 @@ export function FeaturesSection() {
             Anything you need to know about a client, in one place.
           </h2>
         </motion.div>
-
-        {/* Each feature — centered paragraph + dashboard screenshot below
-            (placeholder for a screen recording). */}
-        <div className="mt-28 space-y-32 md:mt-36 md:space-y-40">
-          {CELLS.map((cell) => (
-            <motion.div
-              key={cell.key}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.5 }}
-            >
-              <p className="mx-auto max-w-2xl text-base font-light leading-relaxed text-muted-foreground sm:text-lg">
-                {cell.desc}
-              </p>
-              <img
-                src={cell.img}
-                alt=""
-                aria-hidden
-                className="mt-12 block w-full select-none rounded-xl md:mt-14"
-              />
-            </motion.div>
+        <Tabs defaultValue={FEATURES[0].key} className="mt-12">
+          {FEATURES.map((feature) => (
+            <TabsContent key={feature.key} value={feature.key} className="m-0 w-full">
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35 }}
+                className="mx-auto"
+              >
+                <p className="mx-auto max-w-2xl text-base font-light leading-relaxed text-muted-foreground sm:text-lg">
+                  {feature.desc}
+                </p>
+                <img
+                  src={feature.img}
+                  alt=""
+                  aria-hidden
+                  className="mt-12 block w-full select-none rounded-xl md:mt-14"
+                />
+              </motion.div>
+            </TabsContent>
           ))}
-        </div>
+
+          <div className="flex w-full justify-center">
+            <TabsList
+            className=""
+          >
+            {FEATURES.map((feature) => (
+              <TabsTrigger
+                key={feature.key}
+                value={feature.key}
+                className=""
+              >
+                {feature.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          </div>
+        </Tabs>
       </section>
     </SectionFrame>
   );
