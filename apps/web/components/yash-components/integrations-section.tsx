@@ -75,9 +75,19 @@ export function IntegrationsSection() {
   return (
     <SectionFrame
       className="font-[family-name:var(--font-poppins)]"
-      innerClassName="py-20 text-center md:py-28"
+      innerClassName="relative overflow-hidden py-20 text-center md:py-28"
     >
-      <section id="integrations">
+      {/* Blue radial character — two soft blooms over a faint tint, kept light
+          enough that the dark heading stays readable. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(70% 55% at 50% 0%, color-mix(in srgb, #e7eaee 32%, transparent) 0%, transparent 60%), radial-gradient(60% 50% at 85% 110%, color-mix(in srgb, #2f80ed 24%, transparent) 0%, transparent 55%), color-mix(in srgb, #2f80ed 8%, transparent)",
+        }}
+      />
+      <section id="integrations" className="relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
