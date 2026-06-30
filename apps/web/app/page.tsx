@@ -13,7 +13,7 @@ import { AboutSection } from "@/components/yash-components/about-section";
 import { IntegrationsSection } from "@/components/yash-components/integrations-section";
 import { FeaturesSection } from "@/components/yash-components/features-section";
 import { SecuritySection } from "@/components/yash-components/security-section";
-import { TeamsSection } from "@/components/yash-components/teams-section";
+import { HowItWorksSection } from "@/components/yash-components/how-it-works-section";
 
 // The original (pre-yash-components) landing sections live in
 // components/sections/legacy-landing.tsx and are no longer rendered here.
@@ -51,8 +51,8 @@ export default function LandingPage() {
 
       <IntegrationsSection />
       <FeaturesSection />
-      <TeamsSection />
       <SecuritySection />
+      <HowItWorksSection />
 
       <Pricing />
 

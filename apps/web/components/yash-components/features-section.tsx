@@ -66,6 +66,18 @@ const FEATURES: {
       </>
     ),
   },
+  {
+    key: "members",
+    label: "Members",
+    img: "/feature%20assets/access-log.png",
+    desc: (
+      <>
+        Add your team without handing everyone the keys. The owner grants access{" "}
+        <Hl>per client</Hl> as an <Hl>admin</Hl> or <Hl>viewer</Hl>, so the right people
+        see the right clients and nothing more.
+      </>
+    ),
+  },
 ];
 
 // Features — "Integrate apps once and ask literally anything you want."
