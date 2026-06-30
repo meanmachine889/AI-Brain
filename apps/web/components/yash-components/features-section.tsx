@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "motion/react";
+import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
 import { SectionFrame } from "@/components/yash-components/section-frame";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,7 +32,7 @@ const FEATURES: {
   },
   {
     key: "recent",
-    label: "Recent",
+    label: "Recent Activity",
     img: "/feature%20assets/recent.png",
     desc: (
       <>
@@ -70,6 +71,10 @@ const FEATURES: {
 // Features — "Integrate apps once and ask literally anything you want."
 // Centered heading + description, then a full-width product visual.
 export function FeaturesSection() {
+  const [active, setActive] = useState(FEATURES[0].key);
+  const activeFeature =
+    FEATURES.find((feature) => feature.key === active) ?? FEATURES[0];
+
   return (
     <SectionFrame
       className="font-[family-name:var(--font-poppins)]"
@@ -87,14 +92,19 @@ export function FeaturesSection() {
             Anything you need to know about a client, in one place.
           </h2>
         </motion.div>
-        <Tabs defaultValue={FEATURES[0].key} className="mt-12">
-          {FEATURES.map((feature) => (
-            <TabsContent key={feature.key} value={feature.key} className="m-0 w-full">
-              <motion.div
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
-                className="mx-auto"
+        <Tabs value={active} onValueChange={setActive} className="mt-12">
+          {/* All panels are stacked in one grid cell. The inactive ones stay
+              mounted but invisible purely to hold the container's height, so it
+              never collapses on switch. The visible content is keyed by the
+              active tab and re-animates on every change via AnimatePresence. */}
+          <div className="grid">
+            {FEATURES.map((feature) => (
+              <TabsContent
+                key={feature.key}
+                value={feature.key}
+                keepMounted
+                aria-hidden={feature.key !== active}
+                className="invisible col-start-1 row-start-1 m-0 block w-full [&[hidden]]:block"
               >
                 <p className="mx-auto max-w-2xl text-base font-light leading-relaxed text-muted-foreground sm:text-lg">
                   {feature.desc}
@@ -105,24 +115,45 @@ export function FeaturesSection() {
                   aria-hidden
                   className="mt-12 block w-full select-none rounded-xl md:mt-14"
                 />
-              </motion.div>
-            </TabsContent>
-          ))}
-
-          <div className="flex w-full justify-center">
-            <TabsList
-            className=""
-          >
-            {FEATURES.map((feature) => (
-              <TabsTrigger
-                key={feature.key}
-                value={feature.key}
-                className=""
-              >
-                {feature.label}
-              </TabsTrigger>
+              </TabsContent>
             ))}
-          </TabsList>
+
+            <div className="pointer-events-none col-start-1 row-start-1">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={active}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.17 }}
+                  className="pointer-events-auto mx-auto"
+                >
+                  <p className="mx-auto max-w-2xl text-base font-light leading-relaxed text-muted-foreground sm:text-lg">
+                    {activeFeature.desc}
+                  </p>
+                  <img
+                    src={activeFeature.img}
+                    alt=""
+                    aria-hidden
+                    className="mt-12 block w-full select-none rounded-xl md:mt-14"
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <div className="mt-12 flex w-full justify-center">
+            <TabsList className="!h-auto items-center gap-1 rounded-xl bg-muted p-1">
+              {FEATURES.map((feature) => (
+                <TabsTrigger
+                  key={feature.key}
+                  value={feature.key}
+                  className="h-auto rounded-lg  px-4 py-2 text-xs leading-none text-muted-foreground transition-colors data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+                >
+                  {feature.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </div>
         </Tabs>
       </section>
