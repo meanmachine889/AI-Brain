@@ -43,12 +43,20 @@ export function HeroAside() {
               </nav>
 
               {/* Login — far right */}
+               <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.16 }}
+              className=""
+            >
               <Link
-                href="/login"
-                className="flex h-8 items-center rounded-full bg-[#0b1220] px-4 text-[12px] font-medium text-white transition-transform hover:-translate-y-0.5 active:scale-[0.98] sm:h-9 sm:text-[13px]"
+                href="/waitlist"
+                className="group inline-flex  p-2 px-4 items-center gap-2 rounded-full bg-[#0b1220] text-sm font-medium text-white transition-transform"
               >
-                Login
+                Get Started
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </Link>
+            </motion.div>
             </div>
           </header>
 
@@ -74,7 +82,7 @@ export function HeroAside() {
             >
               <Link
                 href="/waitlist"
-                className="group inline-flex h-10 items-center gap-2 mt-5 rounded-full bg-[#0b1220] px-6 text-[13px] font-medium text-white transition-transform hover:-translate-y-0.5 active:scale-[0.98] sm:h-11 sm:text-sm"
+                className="group inline-flex h-10 items-center gap-2 mt-5 rounded-full bg-[#0b1220] px-6 text-[13px] font-medium text-white transition-transform active:scale-[0.98] sm:h-11 sm:text-sm"
               >
                 Get Started
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
