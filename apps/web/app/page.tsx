@@ -15,9 +15,6 @@ import { PricingSection } from "@/components/yash-components/pricing-section";
 import { CtaSection } from "@/components/yash-components/cta-section";
 import { FaqSection } from "@/components/yash-components/faq-section";
 
-// The original (pre-yash-components) landing sections live in
-// components/sections/legacy-landing.tsx and are no longer rendered here.
-
 export default function LandingPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);

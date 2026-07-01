@@ -2,18 +2,15 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "motion/react";
+import { ArrowRight } from "lucide-react";
 import { api, setSession, type GoogleAuthResponse, type InvitePreview } from "@/lib/api";
 import { GoogleSignInButton } from "@/components/google-signin";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 type Onboarding = {
   onboarding_token: string;
@@ -80,65 +77,123 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">🧠 Agency AI Brain</CardTitle>
-          <CardDescription>
-            {onboarding
-              ? "Set up your agency to get started"
-              : "Instant client context for your agency"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
+    <AuthShell>
+      {/* top bar */}
+      <div className="flex items-center justify-between px-8 pt-8 sm:px-12">
+        <div className="flex items-center gap-2 md:hidden">
+          <Logo className="size-7" />
+          <span className="font-[family-name:var(--font-poppins)] text-sm font-semibold">
+            Neuron
+          </span>
+        </div>
+        <p className="ml-auto text-xs text-muted-foreground">
+          {onboarding ? "Setting up your workspace" : "Instant client context"}
+        </p>
+      </div>
+
+      {/* centered form */}
+      <div className="flex flex-1 items-center justify-center px-8 py-10 sm:px-12">
+        <motion.div
+          key={onboarding ? "onboarding" : "signin"}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="w-full max-w-sm"
+        >
           {!onboarding ? (
-            <div className="flex flex-col items-center gap-3 py-2">
-              <GoogleSignInButton onCredential={onCredential} />
-              {busy && <p className="text-sm text-muted-foreground">Signing in…</p>}
-            </div>
+            <>
+              <div className="text-center">
+                <h1 className="font-[family-name:var(--font-poppins)] text-2xl font-semibold tracking-tight">
+                  Welcome back
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Sign in to your agency workspace
+                </p>
+              </div>
+
+              <div className="mt-8 flex flex-col items-center gap-4">
+                <GoogleSignInButton onCredential={onCredential} />
+                {busy && (
+                  <p className="text-sm text-muted-foreground">Signing in…</p>
+                )}
+              </div>
+
+              <p className="mt-10 text-center text-xs leading-relaxed text-muted-foreground">
+                New here? Sign in with Google and we&apos;ll set up your agency
+                in one step.
+              </p>
+            </>
           ) : (
             <>
+              <div className="text-center">
+                <h1 className="font-[family-name:var(--font-poppins)] text-2xl font-semibold tracking-tight">
+                  Name your agency
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  This is your workspace — you can invite your team later.
+                </p>
+              </div>
+
               {onboarding.invites.length > 0 && (
-                <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
+                <div className="mt-6 space-y-2 rounded-xl bg-muted/50 p-4 ring-hairline">
                   <p className="text-sm font-medium">You have a pending invite</p>
                   {onboarding.invites.map((inv, i) => (
                     <p key={i} className="text-sm text-muted-foreground">
                       {inv.agency_name} · {inv.client_name} as{" "}
-                      <span className="font-medium">{inv.role}</span>
+                      <span className="font-medium text-foreground">{inv.role}</span>
                     </p>
                   ))}
                   <p className="text-xs text-muted-foreground">
-                    Open the invite link you were sent to join. Or create your own
-                    agency below.
+                    Open the invite link you were sent to join instead — or create
+                    your own agency below.
                   </p>
                 </div>
               )}
 
-              <form onSubmit={createAgency} className="space-y-3">
-                <div className="space-y-1.5">
+              <form onSubmit={createAgency} className="mt-6 space-y-4">
+                <div className="space-y-2">
                   <Label htmlFor="agency">Agency name</Label>
                   <Input
                     id="agency"
                     value={agencyName}
                     onChange={(e) => setAgencyName(e.target.value)}
                     placeholder="Acme Studio"
+                    className="h-11"
                     required
                     autoFocus
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <Button
+                  type="submit"
+                  className="group h-11 w-full"
+                  disabled={busy || !agencyName.trim()}
+                >
+                  {busy ? "Creating…" : "Create agency"}
+                  {!busy && (
+                    <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+                  )}
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
                   Signed in as {onboarding.identity.email}
                 </p>
-                <Button type="submit" className="w-full" disabled={busy || !agencyName.trim()}>
-                  {busy ? "Creating…" : "Create agency"}
-                </Button>
               </form>
             </>
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
-        </CardContent>
-      </Card>
-    </div>
+          {error && (
+            <p className="mt-5 text-center text-sm text-destructive">{error}</p>
+          )}
+        </motion.div>
+      </div>
+
+      {/* footer */}
+      <div className="flex items-center justify-between px-8 pb-8 text-xs text-muted-foreground sm:px-12">
+        <span>© {new Date().getFullYear()} Neuron</span>
+        <div className="flex items-center gap-5">
+          <span>Privacy</span>
+          <span>Support</span>
+        </div>
+      </div>
+    </AuthShell>
   );
 }

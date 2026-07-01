@@ -3,30 +3,11 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
+import { Logo } from "@/components/logo";
 
 // Asset paths (folder name has a space → URL-encode it).
 const CLOUDS_BG = "/hero%20assets/image.png";
 const DASHBOARD = "/hero%20assets/dashboard.png";
-
-// Neuron logomark (matches the one on the existing landing page).
-function NeuronMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 28 28" fill="none" className={className} aria-hidden>
-      <line x1="14" y1="3" x2="14" y2="25" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      <line x1="14" y1="9.5" x2="6.5" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="14" y1="9.5" x2="21.5" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="14" y1="18.5" x2="6.5" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="14" y1="18.5" x2="21.5" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="14" cy="3" r="1.8" fill="currentColor" />
-      <circle cx="14" cy="25" r="1.8" fill="currentColor" />
-      <circle cx="6.5" cy="3" r="1.8" fill="currentColor" />
-      <circle cx="21.5" cy="3" r="1.8" fill="currentColor" />
-      <circle cx="6.5" cy="25" r="1.8" fill="currentColor" />
-      <circle cx="21.5" cy="25" r="1.8" fill="currentColor" />
-      <circle cx="14" cy="14" r="2.6" fill="currentColor" />
-    </svg>
-  );
-}
 
 // Aside-inspired hero: a rounded cloud panel holds the nav, headline and CTA,
 // with the product dashboard image placed over the lower half of the clouds.
@@ -50,7 +31,7 @@ export function HeroAside() {
             <div className="flex h-14 items-center justify-between px-6 sm:h-16 sm:px-10">
               {/* Logo — far left */}
               <div className="flex items-center gap-2 text-[#0b1220]">
-                <NeuronMark className="size-6 sm:size-7" />
+                <Logo className="size-10" />
                 <span className="text-sm font-medium tracking-tight sm:text-base">Neuron</span>
               </div>
 
@@ -92,7 +73,7 @@ export function HeroAside() {
               className="mt-5 sm:mt-6"
             >
               <Link
-                href="/login"
+                href="/waitlist"
                 className="group inline-flex h-10 items-center gap-2 mt-5 rounded-full bg-[#0b1220] px-6 text-[13px] font-medium text-white transition-transform hover:-translate-y-0.5 active:scale-[0.98] sm:h-11 sm:text-sm"
               >
                 Get Started

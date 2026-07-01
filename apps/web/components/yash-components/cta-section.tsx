@@ -27,7 +27,7 @@ export function CtaSection() {
           completely.
         </p>
         <Link
-          href="/login"
+          href="/waitlist"
           className="group mt-9 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-7 text-sm font-medium text-[#1a1a1a] shadow-lg transition-all duration-150 hover:-translate-y-0.5 hover:bg-white/90 active:scale-[0.98]"
         >
           Get started

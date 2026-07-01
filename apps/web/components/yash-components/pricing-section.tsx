@@ -136,7 +136,7 @@ export function PricingSection() {
               </ul>
 
               <Link
-                href="/login"
+                href="/waitlist"
                 className={`mt-8 flex h-11 w-full items-center justify-center rounded-xl text-sm font-medium transition-all duration-150 hover:-translate-y-0.5 active:scale-[0.98] ${
                   tier.highlight
                     ? "bg-foreground text-background hover:opacity-90"

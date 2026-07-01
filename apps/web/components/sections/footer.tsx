@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 
 const NAV = {
   Product: [
@@ -21,25 +22,6 @@ const NAV = {
   ],
 } as const;
 
-function NeuronMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 28 28" fill="none" className={className} aria-hidden={true}>
-      <line x1="14" y1="3" x2="14" y2="25" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      <line x1="14" y1="9.5" x2="6.5" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="14" y1="9.5" x2="21.5" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="14" y1="18.5" x2="6.5" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="14" y1="18.5" x2="21.5" y2="25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="14" cy="3" r="1.8" fill="currentColor" />
-      <circle cx="14" cy="25" r="1.8" fill="currentColor" />
-      <circle cx="6.5" cy="3" r="1.8" fill="currentColor" />
-      <circle cx="21.5" cy="3" r="1.8" fill="currentColor" />
-      <circle cx="6.5" cy="25" r="1.8" fill="currentColor" />
-      <circle cx="21.5" cy="25" r="1.8" fill="currentColor" />
-      <circle cx="14" cy="14" r="2.6" fill="currentColor" />
-    </svg>
-  );
-}
-
 export function Footer() {
   return (
     <footer className="border-t border-border/40 bg-background">
@@ -47,7 +29,7 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <NeuronMark className="size-6 text-foreground" />
+              <Logo className="size-6" />
               <span className="font-display font-bold text-foreground text-sm">Neuron</span>
             </div>
             <p className="text-[12px] text-muted-foreground leading-relaxed max-w-[180px]">

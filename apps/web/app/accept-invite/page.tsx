@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "motion/react";
 import {
   api,
   setSession,
@@ -9,13 +10,8 @@ import {
   type Principal,
 } from "@/lib/api";
 import { GoogleSignInButton } from "@/components/google-signin";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { Logo } from "@/components/logo";
 
 type Preview = {
   agency_name: string;
@@ -80,53 +76,88 @@ function AcceptInviteView() {
   );
 
   return (
-    <div className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">You&apos;ve been invited</CardTitle>
-          <CardDescription>
-            {preview
-              ? `Join ${preview.agency_name} on Agency AI Brain`
-              : "Agency AI Brain"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
+    <AuthShell>
+      {/* top bar */}
+      <div className="flex items-center justify-between px-8 pt-8 sm:px-12">
+        <div className="flex items-center gap-2 md:hidden">
+          <Logo className="size-7" />
+          <span className="font-[family-name:var(--font-poppins)] text-sm font-semibold">
+            Neuron
+          </span>
+        </div>
+        <p className="ml-auto text-xs text-muted-foreground">You&apos;ve been invited</p>
+      </div>
+
+      {/* centered form */}
+      <div className="flex flex-1 items-center justify-center px-8 py-10 sm:px-12">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="w-full max-w-sm"
+        >
           {loadErr ? (
-            <p className="text-sm text-red-600">{loadErr}</p>
+            <p className="text-center text-sm text-destructive">{loadErr}</p>
           ) : !preview ? (
-            <p className="text-sm text-muted-foreground">Loading invite…</p>
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="size-6 animate-spin rounded-full border-2 border-muted-foreground/40 border-t-foreground" />
+              <p className="text-sm text-muted-foreground">Loading invite…</p>
+            </div>
           ) : !preview.valid ? (
-            <p className="text-sm text-red-600">
+            <p className="text-center text-sm text-destructive">
               This invite has expired or already been used.
             </p>
           ) : (
             <>
-              <div className="space-y-1 rounded-lg border bg-muted/40 p-3 text-sm">
-                <p>
-                  <span className="text-muted-foreground">Agency</span>{" "}
-                  <span className="font-medium">{preview.agency_name}</span>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Client</span>{" "}
-                  <span className="font-medium">{preview.client_name}</span>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Role</span>{" "}
-                  <span className="font-medium">{preview.role}</span>
+              <div className="text-center">
+                <h1 className="font-[family-name:var(--font-poppins)] text-2xl font-semibold tracking-tight">
+                  Join {preview.agency_name}
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  You&apos;ve been invited to collaborate on a client
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-3">
+
+              <div className="mt-6 space-y-3 rounded-xl bg-muted/50 p-4 ring-hairline">
+                <Row label="Agency" value={preview.agency_name} />
+                <Row label="Client" value={preview.client_name} />
+                <Row label="Role" value={preview.role} />
+              </div>
+
+              <div className="mt-7 flex flex-col items-center gap-4">
                 <p className="text-xs text-muted-foreground">
                   Sign in with Google ({preview.email}) to accept
                 </p>
                 <GoogleSignInButton onCredential={onCredential} />
-                {busy && <p className="text-sm text-muted-foreground">Accepting…</p>}
+                {busy && (
+                  <p className="text-sm text-muted-foreground">Accepting…</p>
+                )}
               </div>
             </>
           )}
-          {error && <p className="text-sm text-red-600">{error}</p>}
-        </CardContent>
-      </Card>
+          {error && (
+            <p className="mt-5 text-center text-sm text-destructive">{error}</p>
+          )}
+        </motion.div>
+      </div>
+
+      {/* footer */}
+      <div className="flex items-center justify-between px-8 pb-8 text-xs text-muted-foreground sm:px-12">
+        <span>© {new Date().getFullYear()} Neuron</span>
+        <div className="flex items-center gap-5">
+          <span>Privacy</span>
+          <span>Support</span>
+        </div>
+      </div>
+    </AuthShell>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
     </div>
   );
 }
